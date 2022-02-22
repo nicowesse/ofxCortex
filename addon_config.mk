@@ -15,16 +15,16 @@
 # and the PG will write to the console the kind of error and in which line it is
 
 meta:
-	ADDON_NAME = ofxCortexUI
-	ADDON_DESCRIPTION = Collection of user interface components
+	ADDON_NAME = ofxCortex
+	ADDON_DESCRIPTION = Collection of Cortex-tools
 	ADDON_AUTHOR = Nicolay Wesseltoft
-	ADDON_TAGS = "ofxCortexUI"
+	ADDON_TAGS = "ofxCortex"
 	ADDON_URL = http://github.com/openframeworks/openFrameworks
 
 common:
 	# dependencies with other addons, a list of them separated by spaces
 	# or use += in several lines
-	ADDON_DEPENDENCIES = ofxTweenzor ofxCortex
+	ADDON_DEPENDENCIES = ofxTweenzor
 
 	# include search paths, this will be usually parsed from the file system
 	# but if the addon or addon libraries need special search paths they can be
@@ -62,10 +62,8 @@ common:
 
 osx:
 	ADDON_INCLUDES = src
-	ADDON_DEPENDENCIES = ofxTweenzor ofxCortex
-	ADDON_DATA = data/assets/fonts
+	ADDON_DEPENDENCIES = ofxTweenzor
 
 vs:
 	ADDON_INCLUDES = src
-	ADDON_DEPENDENCIES = ofxTweenzor ofxCortex
-	ADDON_DATA = data/assets/fonts
+	ADDON_DEPENDENCIES = ofxTweenzor

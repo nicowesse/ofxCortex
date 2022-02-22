@@ -4,6 +4,8 @@
 
 #include "ofxCortex/utils/Shaping.h"
 #include "ofxCortex/utils/Helpers.h"
-//#include "ofxCortex/utils/Sampling.h"
+#include "ofxCortex/utils/Sampling.h"
+
+#include "ofxCortex/graphics/Line.h"
 
 #include "ofxCortex/types/Range.h"
