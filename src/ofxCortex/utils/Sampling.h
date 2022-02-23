@@ -33,8 +33,8 @@ public:
     std::vector<glm::vec2> points;
     std::vector<glm::vec2> spawnPoints;
     
-    static auto isValid = [&, bounds](const glm::vec2 & candidate) -> bool {
-      if (candidate.x >= bounds.x && candidate.x <= bounds.x + bounds.width && candidate.y >= bounds.y && candidate.y <= bounds.y + bounds.height)
+    auto isValid = [&, bounds](const glm::vec2 & candidate) -> bool {
+      if (bounds.inside(candidate))
       {
         int cellX = (int)(candidate.x / cellSize);
         int cellY = (int)(candidate.y / cellSize);
@@ -48,6 +48,7 @@ public:
         {
           for (int y = searchStartY; y < searchEndY; y++)
           {
+            int gridIndex = x + y * columns;
             int pointIndex = grid[x + y * columns];
             if (pointIndex != -1)
             {
@@ -66,9 +67,9 @@ public:
     spawnPoints.push_back(glm::vec2(bounds.width, bounds.height) / 2.0f);
     
     int tries = 0;
-    while (spawnPoints.size() > 0 && tries < 100000)
+    while (spawnPoints.size() > 0)
     {
-      int spawnIndex = (int) (ofRandom(0, spawnPoints.size()));
+      int spawnIndex = (int) (ofRandom(0, spawnPoints.size() - 1));
       glm::vec2 spawnCenter = spawnPoints[spawnIndex];
       bool candidateAccepted = false;
       
@@ -82,6 +83,7 @@ public:
         {
           points.push_back(candidate);
           spawnPoints.push_back(candidate);
+          
           int col = (int)(candidate.x / cellSize);
           int row = (int)(candidate.y / cellSize);
           grid[col + row * columns] = points.size() - 1;

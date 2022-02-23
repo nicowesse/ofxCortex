@@ -1,6 +1,6 @@
 #pragma once
 
-namespace ofxCortex { namespace core {
+namespace ofxCortex { namespace utils {
 
 class Shaping {
 public:
