@@ -56,7 +56,7 @@ public:
   float getRandom() const { return ofRandom(this->from, this->to); }
   float map(float value, float lower = 0.0f, float upper = 1.0f) const { return ofMap(value, lower, upper, this->from, this->to, true); }
   
-  void print() const { cout << "ofxVoid::types::Range" << " [" << min << "] " << ofToString(from, 2) << " <-> " << ofToString(to, 2) << " [" << max << "]" << endl; }
+  void print() const { cout << "ofxCortex::types::Range" << " [" << min << "] " << ofToString(from, 2) << " <-> " << ofToString(to, 2) << " [" << max << "]" << endl; }
   
   friend ostream& operator<<(ostream& os, const Range& range)
   {

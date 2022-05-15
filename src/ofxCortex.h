@@ -5,9 +5,11 @@
 #include "ofxCortex/utils/Shaping.h"
 #include "ofxCortex/utils/Helpers.h"
 #include "ofxCortex/utils/Sampling.h"
+#include "ofxCortex/utils/Parameters.h"
 
 #include "ofxCortex/graphics/Line.h"
 
 #include "ofxCortex/generators/Noise.h"
 
 #include "ofxCortex/types/Range.h"
+#include "ofxCortex/types/Box.h"

@@ -6,6 +6,7 @@
 #include "ofVectorMath.h"
 #include "ofRectangle.h"
 #include <glm/vec2.hpp>
+#include "ofxCortex/types/Box.h"
 
 namespace ofxCortex { namespace utils {
 
@@ -25,6 +26,9 @@ public:
     radius = MAX(1.0, radius);
     
     float cellSize = radius / sqrt(2.0);
+    ofRectangle originalBounds = bounds;
+    bounds.x = 0;
+    bounds.y = 0;
     
     int columns = ceil(bounds.width / cellSize);
     int rows = ceil(bounds.height / cellSize);
@@ -33,8 +37,8 @@ public:
     std::vector<glm::vec2> points;
     std::vector<glm::vec2> spawnPoints;
     
-    static auto isValid = [&, bounds](const glm::vec2 & candidate) -> bool {
-      if (candidate.x >= bounds.x && candidate.x <= bounds.x + bounds.width && candidate.y >= bounds.y && candidate.y <= bounds.y + bounds.height)
+    auto isValid = [&, bounds](const glm::vec2 & candidate) -> bool {
+      if (bounds.inside(candidate))
       {
         int cellX = (int)(candidate.x / cellSize);
         int cellY = (int)(candidate.y / cellSize);
@@ -48,6 +52,7 @@ public:
         {
           for (int y = searchStartY; y < searchEndY; y++)
           {
+            int gridIndex = x + y * columns;
             int pointIndex = grid[x + y * columns];
             if (pointIndex != -1)
             {
@@ -66,9 +71,9 @@ public:
     spawnPoints.push_back(glm::vec2(bounds.width, bounds.height) / 2.0f);
     
     int tries = 0;
-    while (spawnPoints.size() > 0 && tries < 100000)
+    while (spawnPoints.size() > 0)
     {
-      int spawnIndex = (int) (ofRandom(0, spawnPoints.size()));
+      int spawnIndex = (int) (ofRandom(0, spawnPoints.size() - 1));
       glm::vec2 spawnCenter = spawnPoints[spawnIndex];
       bool candidateAccepted = false;
       
@@ -82,6 +87,7 @@ public:
         {
           points.push_back(candidate);
           spawnPoints.push_back(candidate);
+          
           int col = (int)(candidate.x / cellSize);
           int row = (int)(candidate.y / cellSize);
           grid[col + row * columns] = points.size() - 1;
@@ -95,7 +101,133 @@ public:
       tries++;
     }
     
+    for (auto & point : points) point += glm::vec2(originalBounds.x, originalBounds.y);
+    
     return points;
+  }
+  
+  static std::vector<glm::vec3> sample3D(float radius, ofxCortex::core::types::Box bounds, int numSamplesBeforeRejection = 30)
+  {
+    radius = MAX(1.0, radius);
+    
+    float cellSize = radius / sqrt(2.0);
+    ofxCortex::core::types::Box originalBounds = bounds;
+    bounds.x = 0;
+    bounds.y = 0;
+    bounds.z = 0;
+    
+    cout << "bounds: " << bounds.width << ", " << bounds.height << ", " << bounds.depth << endl;
+    
+    int columns = ceil(bounds.width / cellSize);
+    int rows = ceil(bounds.height / cellSize);
+    int layers = ceil(bounds.depth / cellSize);
+    
+    std::vector<int> grid(columns * rows * layers, -1);
+    std::vector<glm::vec3> points;
+    std::vector<glm::vec3> spawnPoints;
+    
+    auto isValid = [&, bounds](const glm::vec3 & candidate) -> bool {
+      if (bounds.inside(candidate))
+      {
+        int cellX = (int)(candidate.x / cellSize);
+        int cellY = (int)(candidate.y / cellSize);
+        int cellZ = (int)(candidate.z / cellSize);
+        
+        int searchStartX =  MAX(cellX - 2, 0);
+        int searchEndX =    MIN(cellX + 2, columns);
+        int searchStartY =  MAX(cellY - 2, 0);
+        int searchEndY =    MIN(cellY + 2, rows);
+        int searchStartZ =  MAX(cellZ - 2, 0);
+        int searchEndZ =    MIN(cellZ + 2, rows);
+        
+        for (int x = searchStartX; x < searchEndX; x++)
+        {
+          for (int y = searchStartY; y < searchEndY; y++)
+          {
+            for (int z = searchStartZ; z < searchEndZ; z++)
+            {
+              int gridIndex = x + rows * (y + columns * z);
+              int pointIndex = grid[gridIndex];
+              if (pointIndex != -1)
+              {
+                float dst = glm::length2(candidate - points[pointIndex]);
+                if (dst < radius * radius) return false;
+              }
+            }
+          }
+        }
+        
+        return true;
+      }
+      
+      return false;
+    };
+    
+    spawnPoints.push_back(glm::vec3(bounds.width, bounds.height, bounds.depth) / 2.0f);
+    
+    int tries = 0;
+    while (spawnPoints.size() > 0)
+    {
+      int spawnIndex = (int) (ofRandom(0, spawnPoints.size() - 1));
+      glm::vec3 spawnCenter = spawnPoints[spawnIndex];
+      bool candidateAccepted = false;
+      
+      for (int i = 0; i < numSamplesBeforeRejection; i++)
+      {
+        glm::vec3 candidate = spawnCenter + ofxCortex::utils::Vector::random3D(ofRandom(radius, radius * 2.0));
+        
+        if (isValid(candidate))
+        {
+          points.push_back(candidate);
+          spawnPoints.push_back(candidate);
+          
+          int col = (int)(candidate.x / cellSize);
+          int row = (int)(candidate.y / cellSize);
+          int lay = (int)(candidate.z / cellSize);
+          int index = col + rows * (row + columns * lay);
+          grid[index] = points.size() - 1;
+          candidateAccepted = true;
+          break;
+        }
+      }
+      
+      if (!candidateAccepted) spawnPoints.erase(spawnPoints.begin() + spawnIndex);
+      
+      tries++;
+    }
+    
+    for (auto & point : points) point += glm::vec3(originalBounds.x, originalBounds.y, originalBounds.z);
+    
+    return points;
+  }
+  
+  static vector<glm::vec2> insidePolyline(const ofPolyline & source, float radius)
+  {
+    vector<glm::vec2> samples = sample(radius, source.getBoundingBox());
+    
+    vector<glm::vec2> output;
+    for (const glm::vec2 & point : samples)
+    {
+      if (source.inside(point.x, point.y)) output.push_back(point);
+    }
+    
+    return output;
+  }
+  
+  static vector<glm::vec2> fromMask(const ofFbo & mask, float radius, float threshold = 0.9f)
+  {
+    ofRectangle bb(0, 0, mask.getWidth(), mask.getHeight());
+    vector<glm::vec2> samples = sample(radius, bb);
+    
+    ofFloatPixels pixels;
+    mask.readToPixels(pixels);
+    
+    vector<glm::vec2> output;
+    for (const glm::vec2 & point : samples)
+    {
+      if (pixels.getColor(point.x, point.y).getBrightness() >= threshold) output.push_back(point);
+    }
+    return output;
   }
   
 private:

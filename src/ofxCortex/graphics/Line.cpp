@@ -7,9 +7,20 @@ ofPath Line::getLinePath(const ofPolyline & source, float thickness, ClipperLib:
   return polysToPath(ofx::Clipper::getOffsets({ source }, thickness, jointype, endtype));
 }
 
-void Line::drawPolyline(const ofPolyline & source, float thickness, ClipperLib::JoinType jointype, ClipperLib::EndType endtype)
+void Line::drawPolyline(const ofPolyline & source, float thickness, ofFloatColor color, ClipperLib::JoinType jointype, ClipperLib::EndType endtype)
 {
+  if (ofIsFloatEqual(thickness, 1.0f))
+  {
+    ofPushStyle();
+    ofSetColor(color);
+    source.draw();
+    ofPopStyle();
+    
+    return;
+  }
+  
   ofPath path = polysToPath(ofx::Clipper::getOffsets({ source }, thickness, jointype, endtype));
+  path.setFillColor(color);
   path.draw();
 }
 
@@ -41,6 +52,13 @@ void Line::catmullRom(ofPolyline & target, const ofPolyline & source, int iterat
   spline.push_back(points[points.size() - 2]);
   
   target = ofPolyline(spline);
+}
+
+ofPolyline Line::getCatmullRom(const ofPolyline & source, int iterations)
+{
+  ofPolyline output;
+  catmullRom(output, source, iterations);
+  return output;
 }
 
 void Line::chaikin(ofPolyline & target, const ofPolyline & source, int iterations, float tension)
@@ -82,6 +100,13 @@ void Line::chaikin(ofPolyline & target, const ofPolyline & source, int iteration
   target = ofPolyline(points);
 }
 
+ofPolyline Line::getChaikin(const ofPolyline & source, int iterations, float tension)
+{
+  ofPolyline output;
+  chaikin(output, source, iterations, tension);
+  return output;
+}
+
 ofPath Line::polysToPath(const std::vector<ofPolyline> & polylines) {
   ofPath path;
   for(int outline = 0; outline < polylines.size(); ++outline) {
@@ -94,6 +119,92 @@ ofPath Line::polysToPath(const std::vector<ofPolyline> & polylines) {
     if (polylines[outline].isClosed()) path.close();
   }
   return path;
+}
+
+ofPolyline Line::getLineSubsection(const ofPolyline & source, float start, float end)
+{
+  float actualStart = MIN(start, end);
+  float actualEnd = MAX(start, end);
+  
+  if (ofIsFloatEqual(actualStart, actualEnd)) return ofPolyline();
+  if (ofIsFloatEqual(actualStart, 0.0f) && ofIsFloatEqual(actualEnd, 1.0f)) return source;
+  
+  float startIndex = source.getIndexAtPercent(actualStart);
+  int fillStartIndex = ceil(startIndex);
+  float endIndex = source.getIndexAtPercent(actualEnd);
+  int fillEndIndex = floor(endIndex) + 1;
+  
+  std::vector<glm::vec3> filler;
+  std::copy(source.begin() + fillStartIndex, source.begin() + fillEndIndex, back_inserter(filler));
+  
+  ofPolyline output;
+  output.addVertex(source.getPointAtIndexInterpolated(startIndex));
+  output.addVertices(filler);
+  output.addVertex(source.getPointAtIndexInterpolated(endIndex));
+  
+  return output;
+}
+
+
+ofPolyline Line::getInterpolatedPolyline(const ofPolyline & source, const ofPolyline & target, float t){
+  if (source.size() != target.size())
+  {
+    ofLogWarning("Line::getInterpolatedPolyline") << "Source and Target polylines needs equal amount of vertices. Returning source line.."; return source;
+  }
+  
+  ofPolyline output;
+  for (int i = 0; i < source.size(); i++) { output.addVertex(glm::mix(source[i], target[i], t)); }
+  return output;
+}
+
+void Line::scribbleLine(ofPolyline & source, float resolution, float amplitude)
+{
+  if (source.size() < 2) return;
+  
+  source = source.getResampledBySpacing(resolution);
+  
+  for (int i = 0; i < source.size(); i++)
+  {
+    glm::vec3 normal = source.getNormalAtIndex(i);
+    float t = (float)i / (source.size() - 1);
+    float offset = ofSignedNoise(t, i) * amplitude;
+    source[i] += normal * offset;
+  }
+}
+  
+ofPolyline Line::getScribbledLine(const ofPolyline & source, float resolution, float amplitude)
+{
+  ofPolyline output = source;
+  scribbleLine(output, resolution, amplitude);
+  return output;
+}
+
+void Line::reverse(ofPolyline & source)
+{
+  source = getReversed(source);
+}
+
+ofPolyline Line::getReversed(const ofPolyline &source)
+{
+  ofPolyline temp;
+  for (int i = source.size() - 1; i >= 0; i--)
+  {
+    temp.addVertex(source[i]);
+  }
+  return temp;
+}
+
+ofPolyline Line::fromRectangle(const ofRectangle & rect)
+{
+  ofPolyline line;
+  
+  line.addVertex(rect.getTopLeft());
+  line.addVertex(rect.getTopRight());
+  line.addVertex(rect.getBottomRight());
+  line.addVertex(rect.getBottomLeft());
+  line.close();
+  
+  return line;
 }
 
 }}
