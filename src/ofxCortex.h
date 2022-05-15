@@ -8,4 +8,6 @@
 
 #include "ofxCortex/graphics/Line.h"
 
+#include "ofxCortex/generators/Noise.h"
+
 #include "ofxCortex/types/Range.h"
