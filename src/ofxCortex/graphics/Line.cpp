@@ -1,6 +1,6 @@
 #include "Line.h"
 
-namespace ofxCortex { namespace graphics {
+namespace ofxCortex { namespace core { namespace graphics {
 
 ofPath Line::getLinePath(const ofPolyline & source, float thickness, ClipperLib::JoinType jointype, ClipperLib::EndType endtype)
 {
@@ -24,7 +24,7 @@ void Line::drawPolyline(const ofPolyline & source, float thickness, ofFloatColor
   path.draw();
 }
 
-void Line::catmullRom(ofPolyline & target, const ofPolyline & source, int iterations)
+void Line::catmullRom(ofPolyline & source, int iterations)
 {
   if (source.size() < 3) {
     ofLogNotice("PolylineUtils::catmullRom()") << "Source needs at least 3 vertices.";
@@ -51,17 +51,17 @@ void Line::catmullRom(ofPolyline & target, const ofPolyline & source, int iterat
   }
   spline.push_back(points[points.size() - 2]);
   
-  target = ofPolyline(spline);
+  source = ofPolyline(spline);
 }
 
 ofPolyline Line::getCatmullRom(const ofPolyline & source, int iterations)
 {
-  ofPolyline output;
-  catmullRom(output, source, iterations);
+  ofPolyline output = source;
+  catmullRom(output, iterations);
   return output;
 }
 
-void Line::chaikin(ofPolyline & target, const ofPolyline & source, int iterations, float tension)
+void Line::chaikin(ofPolyline & source, int iterations, float tension)
 {
   if (source.size() < 3) {
     ofLogNotice("Line::chaikin()") << "Source needs at least 3 vertices.";
@@ -97,13 +97,13 @@ void Line::chaikin(ofPolyline & target, const ofPolyline & source, int iteration
   
   for (int i = 0; i < iterations; i++) { points = getSmoothedPoints(points, cuttingDistance, closed); }
   
-  target = ofPolyline(points);
+  source = ofPolyline(points);
 }
 
 ofPolyline Line::getChaikin(const ofPolyline & source, int iterations, float tension)
 {
-  ofPolyline output;
-  chaikin(output, source, iterations, tension);
+  ofPolyline output = source;
+  chaikin(output, iterations, tension);
   return output;
 }
 
@@ -123,11 +123,15 @@ ofPath Line::polysToPath(const std::vector<ofPolyline> & polylines) {
 
 ofPolyline Line::getLineSubsection(const ofPolyline & source, float start, float end)
 {
+  if (source.size() == 0) return ofPolyline();
+  
   float actualStart = MIN(start, end);
   float actualEnd = MAX(start, end);
   
   if (ofIsFloatEqual(actualStart, actualEnd)) return ofPolyline();
   if (ofIsFloatEqual(actualStart, 0.0f) && ofIsFloatEqual(actualEnd, 1.0f)) return source;
+  
+  ofPolyline output;
   
   float startIndex = source.getIndexAtPercent(actualStart);
   int fillStartIndex = ceil(startIndex);
@@ -135,9 +139,17 @@ ofPolyline Line::getLineSubsection(const ofPolyline & source, float start, float
   int fillEndIndex = floor(endIndex) + 1;
   
   std::vector<glm::vec3> filler;
-  std::copy(source.begin() + fillStartIndex, source.begin() + fillEndIndex, back_inserter(filler));
   
-  ofPolyline output;
+  if (source.isClosed() && start > end)
+  {
+    std::swap(startIndex, endIndex);
+    
+    std::copy(source.begin() + fillEndIndex, source.end(), back_inserter(filler));
+    std::copy(source.begin(), source.begin() + fillStartIndex, back_inserter(filler));
+  }
+  else std::copy(source.begin() + fillStartIndex, source.begin() + fillEndIndex, back_inserter(filler));
+  
+  
   output.addVertex(source.getPointAtIndexInterpolated(startIndex));
   output.addVertices(filler);
   output.addVertex(source.getPointAtIndexInterpolated(endIndex));
@@ -207,4 +219,4 @@ ofPolyline Line::fromRectangle(const ofRectangle & rect)
   return line;
 }
 
-}}
+}}}

@@ -4,19 +4,19 @@
 #include "ofGraphics.h"
 #include "ofMath.h"
 
-namespace ofxCortex { namespace graphics {
+namespace ofxCortex { namespace core { namespace graphics {
 
 class Line {
 public:
   // Rendering
   static ofPath getLinePath(const ofPolyline & source, float thickness, ClipperLib::JoinType jointype = ClipperLib::jtRound, ClipperLib::EndType endtype = ClipperLib::etOpenRound);
-  static void drawPolyline(const ofPolyline & source, float thickness, ofFloatColor color, ClipperLib::JoinType jointype = ClipperLib::jtRound, ClipperLib::EndType endtype = ClipperLib::etOpenRound);
+  static void drawPolyline(const ofPolyline & source, float thickness, ofFloatColor color = ofFloatColor::white, ClipperLib::JoinType jointype = ClipperLib::jtRound, ClipperLib::EndType endtype = ClipperLib::etOpenRound);
 
   // Interpolations/modifiers
-  static void catmullRom(ofPolyline & target, const ofPolyline & source, int iterations = 10);
+  static void catmullRom(ofPolyline & source, int iterations = 10);
   static ofPolyline getCatmullRom(const ofPolyline & source, int iterations = 10);
   
-  static void chaikin(ofPolyline & target, const ofPolyline & source, int iterations = 4, float tension = 0.5f);
+  static void chaikin(ofPolyline & source, int iterations = 4, float tension = 0.5f);
   static ofPolyline getChaikin(const ofPolyline & source, int iterations = 4, float tension = 0.5f);
   
   static void scribbleLine(ofPolyline & source, float resolution, float amplitude);
@@ -37,4 +37,4 @@ private:
   Line() = default;
 };
 
-}}
+}}}
