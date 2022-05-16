@@ -6,7 +6,7 @@ namespace ofxCortex { namespace core { namespace types {
 
 class Box {
 public:
-  Box() : x(position.x), y(position.y), z(position.z) { set(0, 0, 0, 0, 0, 0); }
+  Box() : x(position.x), y(position.y), z(position.z) { }
   Box(const glm::vec3 & p, float w, float h, float d) : Box() { set(p, w, h, d); }
   Box(float px, float py, float pz, float w, float h, float d) : Box() { set(px, py, pz, w, h, d); }
   Box(const Box & box) : Box() { set(box.x, box.y, box.z, box.width, box.height, box.depth); }
@@ -21,11 +21,10 @@ public:
     width = w;
     height = h;
     depth = d;
-    
-    cout << "Box: " << x << ", " << y << ", " << z << " " << width << ", " << height << ", " << depth << endl;
   }
   
   void set(const glm::vec3 & p, float w, float h, float d) { set(p.x, p.y, p.z, w, h, d); }
+  void setFromCenter(const glm::vec3 & p, float w, float h, float d) { set(p.x - (w * 0.5), p.y - (h * 0.5), p.z - (d * 0.5), w, h, d); }
   
   float getLeft() const { return x; }
   float getRight() const { return x + width; }
@@ -51,14 +50,33 @@ public:
   }
   
   // Properties
-  glm::vec3 position{};
+  glm::vec3 position{ 0, 0, 0 };
   float& x;
   float& y;
   float& z;
   
-  float width;
-  float height;
-  float depth;
+  float width { 0 };
+  float height { 0 };
+  float depth { 0 };
+  
+  friend std::ostream& operator<<(std::ostream& os, const Box& box)
+  {
+    os << box.position << ", " << box.width << ", " << box.height << ", " << box.depth;
+    return os;
+  }
+  
+  friend std::istream& operator>> (std::istream &is, Box &box)
+  {
+    is >> box.position;
+    is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
+    is >> box.width;
+    is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
+    is >> box.height;
+    is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
+    is >> box.depth;
+    
+    return is;
+  }
 };
 
 }}}

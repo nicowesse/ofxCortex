@@ -1,6 +1,6 @@
 #pragma once
 
-namespace ofxCortex { namespace types {
+namespace ofxCortex { namespace core { namespace types {
 
 class Range
 {
@@ -79,4 +79,4 @@ public:
   
 };
 
-}}
+}}}
