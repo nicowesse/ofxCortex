@@ -15,6 +15,9 @@ public:
   {
       return pow( 4.0*x*(1.0-x), k );
   }
+  
+  static float signedToUnsigned(float x) { return (x + 1.0) / 2.0; }
+  static float unsignedToSigned(float x) { return (x * 2.0) - 1.0; }
 };
 
 }}

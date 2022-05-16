@@ -8,7 +8,7 @@
 #include <glm/vec2.hpp>
 #include "ofxCortex/types/Box.h"
 
-namespace ofxCortex { namespace utils {
+namespace ofxCortex { namespace core { namespace utils {
 
 struct PoissonDisc {
 public:
@@ -106,17 +106,16 @@ public:
     return points;
   }
   
-  static std::vector<glm::vec3> sample3D(float radius, ofxCortex::core::types::Box bounds, int numSamplesBeforeRejection = 30)
+  static std::vector<glm::vec3> sample3D(float radius, const ofMesh & mesh, int numSamplesBeforeRejection = 30)
   {
     radius = MAX(1.0, radius);
     
     float cellSize = radius / sqrt(2.0);
+    ofxCortex::core::types::Box bounds = ofxCortex::core::utils::getMeshBoundingBox(mesh);
     ofxCortex::core::types::Box originalBounds = bounds;
     bounds.x = 0;
     bounds.y = 0;
     bounds.z = 0;
-    
-    cout << "bounds: " << bounds.width << ", " << bounds.height << ", " << bounds.depth << endl;
     
     int columns = ceil(bounds.width / cellSize);
     int rows = ceil(bounds.height / cellSize);
@@ -148,7 +147,7 @@ public:
             {
               int gridIndex = x + rows * (y + columns * z);
               int pointIndex = grid[gridIndex];
-              if (pointIndex != -1)
+              if (pointIndex != -1 && pointIndex < points.size())
               {
                 float dst = glm::length2(candidate - points[pointIndex]);
                 if (dst < radius * radius) return false;
@@ -174,7 +173,7 @@ public:
       
       for (int i = 0; i < numSamplesBeforeRejection; i++)
       {
-        glm::vec3 candidate = spawnCenter + ofxCortex::utils::Vector::random3D(ofRandom(radius, radius * 2.0));
+        glm::vec3 candidate = spawnCenter + ofxCortex::core::utils::Vector::random3D(ofRandom(radius, radius * 2.0));
         
         if (isValid(candidate))
         {
@@ -196,9 +195,12 @@ public:
       tries++;
     }
     
-    for (auto & point : points) point += glm::vec3(originalBounds.x, originalBounds.y, originalBounds.z);
+    for (auto & point : points) point += originalBounds.position;
     
-    return points;
+    vector<glm::vec3> output;
+    std::copy_if(points.begin(), points.end(), back_inserter(output), [&mesh](const glm::vec3 & p) { return ofxCortex::core::utils::isInsideMesh(p, mesh); });
+    
+    return output;
   }
   
   static vector<glm::vec2> insidePolyline(const ofPolyline & source, float radius)
@@ -234,4 +236,4 @@ private:
   ofRectangle bounds;
 };
 
-}}
+}}}
