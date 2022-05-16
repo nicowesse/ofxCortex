@@ -10,6 +10,7 @@
 #include "ofxCortex/graphics/Line.h"
 
 #include "ofxCortex/generator/Waveform.h"
+#include "ofxCortex/generators/Noise.h"
 
 #include "ofxCortex/types/Range.h"
 #include "ofxCortex/types/Box.h"
