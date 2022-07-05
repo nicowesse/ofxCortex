@@ -4,52 +4,54 @@
 #include "ofVectorMath.h"
 
 namespace ofxCortex { namespace core { namespace utils {
+
     template <class T>
-    class ProximityManager
+    class Proximity
     {
-      
     public:
+      Proximity() = default;
       
-      ProximityManager(glm.:ivec3 bins, glm::vec3 size = glm::vec3(), glm::vec3 position = glm::vec3())
-      : _binCount(numBinsX), _size(size), _position(position)
+//      Proximity(glm::ivec3 bins, glm::vec3 position = glm::vec3(), glm::vec3 size = glm::vec3())
+//      : _binCount(bins), _position(position), _size(size)
+//      {
+//
+//      };
+      
+      void setup(glm::ivec3 bins, glm::vec3 position = glm::vec3(), glm::vec3 size = glm::vec3())
       {
-        _bins.resize(_binCount.x * _binCount.y * _binCount.znum);
-      };
+        _binCount = bins;
+        _position = position;
+        _size = size;
+        
+        _bins.resize(_binCount.x * _binCount.y * _binCount.z);
+      }
       
       void update()
       {
-        for (int i = 0; i < _bins.size(); i++) { _bins[i].clear(); }
+        for (auto & bin : _bins) { bin.clear(); }
         
-        _binSize = _size / _binCount;
+        _binSize = _size / (glm::vec3) _binCount;
         
-        int num = _binCount.x * _binCount.y * _binCount.z;
-        
-        for (int i = 0; i < _objs.size(); i++)
+        for (auto & obj : _objs)
         {
-          int xBin, yBin, zBin;
-          getBinIndices(getObjectPosition(_objs[i]), xBin, yBin, zBin);
+          glm::ivec3 indices = getBinIndices(getObjectPosition(obj));
           
-          int binIndex = getBinIndex(xBin, yBin, zBin);
-          
-          if (isValidBin(xBin, yBin, zBin))
+          if (isValidBin(indices))
           {
-            _bins[binIndex].push_back(_objs[i]);
+            _bins[getBinIndex(indices)].push_back(obj);
           }
         }
       };
       
       vector<T*> getNeighbours(glm::vec3 position, float radius)
       {
-        int binX, binY, binZ;
         
-        int index = getBinIndex(position, binX, binY, binZ);
-        
-        int minXBin = getXBinIndex(position.x - radius);
-        int maxXBin = getXBinIndex(position.x + radius);
-        int minYBin = getYBinIndex(position.y - radius);
-        int maxYBin = getYBinIndex(position.y + radius);
-        int minZBin = getZBinIndex(position.z - radius);
-        int maxZBin = getZBinIndex(position.z + radius);
+        int minXBin = indexX(position.x - radius);
+        int maxXBin = indexX(position.x + radius);
+        int minYBin = indexY(position.y - radius);
+        int maxYBin = indexY(position.y + radius);
+        int minZBin = indexZ(position.z - radius);
+        int maxZBin = indexZ(position.z + radius);
         
         if (maxXBin < minXBin) swap(maxXBin, minXBin);
         if (maxYBin < minYBin) swap(maxYBin, minYBin);
@@ -67,16 +69,13 @@ namespace ofxCortex { namespace core { namespace utils {
             {
               if (isValidBin(x, y, z))
               {
-                vector<T *> objs = _bins[getBinIndex(x, y, z)];
+                vector<T *> objs = _bins[to1D(x, y, z)];
                 
                 for (int i = 0; i < objs.size(); i++)
                 {
                   float distance = glm::distance2(getObjectPosition(objs[i]), position);
                   
-                  if (distance <= maxDistance)
-                  {
-                    neighbours.push_back(objs[i]);
-                  }
+                  if (distance <= maxDistance) neighbours.push_back(objs[i]);
                 }
               }
             }
@@ -89,61 +88,62 @@ namespace ofxCortex { namespace core { namespace utils {
       void insert(T *obj) { _objs.push_back(obj); }
       
       void remove(int index) { _objs.erase(_objs.begin() + index); }
-      
       void remove(T * obj) { _objs.erase(remove(_objs.begin(), _objs.end(), obj), _objs.end()); }
       
       
       int count() const { return _objs.size(); }
       
-      glm::ivec3 getNumBins() const { return _binCount; }
-      glm::vec3 getBinSize() const { return _binSize; }
+      glm::ivec3 getBinCount() const { return _binCount; }
+      glm::vec3  getBinSize() const { return _binSize; }
       
       
     protected:
       
       bool isValidBin (int x, int y, int z)
       {
-        return x > -1 && x < _binCount.x && y > -1 && y < _binCount.y && (_binCount.z < 1 || (z > -1 && z < _binCount.z));
+        return x >= 0 && x < _binCount.x && y >= 0 && y < _binCount.y && (_binCount.z < 1 || (z >= 0 && z < _binCount.z));
       }
       
-      int getBinIndices(glm::vec3 pos, int & x, int & y, int & z) const
+      bool isValidBin (glm::ivec3 indices) { return isValidBin(indices.x, indices.y, indices.z); }
+      
+      vector<T*> getBin(glm::vec3 position)
       {
-        x = getXBinIndex(pos.x);
-        y = getYBinIndex(pos.y);
-        z = (_numBinsZ > 0) ? getZBinIndex(pos.z) : 0;
-        
-        return 3Dto2D(x, y, z);
+        return _bins[getBinIndex(position)];
+      };
+      
+      int getBinIndex(glm::vec3 pos) const
+      {
+        return to1D((glm::ivec3) getBinIndices(pos));
       }
       
-      int indexX(float x) { return floor((x - _position.x) / _binSize.x); }
-      int indexY(float y) { return floor((y - _position.y) / _binSize.y); }
-      int indexZ(float z) { return floor((z - _position.z) / _binSize.z); }
+      glm::ivec3 getBinIndices(glm::vec3 pos) const
+      {
+        return glm::ivec3(indexX(pos.x), indexY(pos.y), (_binCount.z > 0) ? indexZ(pos.z) : 0);
+      }
       
-      int 3Dto2D (int x, int y, int z)
+      int indexX(float x) const { return floor((x - _position.x) / _binSize.x); }
+      int indexY(float y) const { return floor((y - _position.y) / _binSize.y); }
+      int indexZ(float z) const { return floor((z - _position.z) / _binSize.z); }
+      
+      int to1D(int x, int y, int z) const
       {
         int binIndex = (y * _binCount.x) + x;
-        binIndex += z * (_binCount.x * _binCunt.y);
+        binIndex += z * (_binCount.x * _binCount.y);
         
         return binIndex;
       }
       
-      vector<T*> getBin(glm::vec3 position)
+      int to1D(glm::ivec3 indices) const { return to1D(indices.x, indices.y, indices.z); }
+      
+      virtual glm::vec3 getObjectPosition(T * obj)
       {
-        int x, y, z;
-        int index = getBinIndices(position, x, y, z);
-        
-        return _bins[index];
-      };
-      
-      
-      
-      virtual glm::vec3 & getObjectPosition(T * obj)
-      {
-        return obj->position;
+        return *obj;
       };
       
     protected:
-      ofRectangle _bounds;
+      glm::vec3 _position;
+      glm::vec3 _size;
+      
       glm::vec3 _binSize;
       glm::ivec3 _binCount;
       

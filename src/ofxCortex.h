@@ -6,6 +6,7 @@
 #include "ofxCortex/utils/Helpers.h"
 #include "ofxCortex/utils/Sampling.h"
 #include "ofxCortex/utils/Parameters.h"
+#include "ofxCortex/utils/Proximity.h"
 
 #include "ofxCortex/graphics/Line.h"
 
