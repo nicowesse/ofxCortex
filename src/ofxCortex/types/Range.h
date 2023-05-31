@@ -56,22 +56,27 @@ public:
   float getRandom() const { return ofRandom(this->from, this->to); }
   float map(float value, float lower = 0.0f, float upper = 1.0f) const { return ofMap(value, lower, upper, this->from, this->to, true); }
   
-  void print() const { cout << "ofxCortex::types::Range" << " [" << min << "] " << ofToString(from, 2) << " <-> " << ofToString(to, 2) << " [" << max << "]" << endl; }
+  void print() const { std::cout << "ofxCortex::types::Range" << " [" << min << "] " << ofToString(from, 2) << " <-> " << ofToString(to, 2) << " [" << max << "]" << std::endl; }
   
-  friend ostream& operator<<(ostream& os, const Range& range)
+  std::string toString() const {
+    std::stringstream output; output << ofToString(from, 2) << " - " << ofToString(to, 2);
+    return output.str();
+  }
+  
+  friend std::ostream& operator<<(std::ostream& os, const Range& range)
   {
     os << range.min << "," << range.from << "," << range.to << "," << range.max;
     return os;
   }
   
-  friend istream& operator>> (istream &is, Range &range)
+  friend std::istream& operator>> (std::istream &is, Range &range)
   {
     is >> range.min;
-    is.ignore(numeric_limits<streamsize>::max(), ',');
+    is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
     is >> range.from;
-    is.ignore(numeric_limits<streamsize>::max(), ',');
+    is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
     is >> range.to;
-    is.ignore(numeric_limits<streamsize>::max(), ',');
+    is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
     is >> range.max;
     
     return is;

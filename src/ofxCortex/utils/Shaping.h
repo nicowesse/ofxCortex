@@ -23,6 +23,15 @@ public:
     return pow(x, amplitude) / (pow(x, amplitude) + pow(bias - bias * x, amplitude));
   };
   
+  static double expBlend(double x, double slope = 0.5, double shift = 0.5)
+  {
+    double c = 2.0 / (1.0 - slope) - 1.0;
+    
+    auto f = [&](double x, double n) { return pow(x, c) / pow(n, c - 1.0); };
+    
+    return (x < shift) ? f(x, shift) : 1.0 - f(1.0 - x, 1.0 - shift);
+  };
+  
   static float parabola( float x, float k )
   {
       return pow( 4.0*x*(1.0-x), k );
@@ -30,6 +39,17 @@ public:
   
   static float signedToUnsigned(float x) { return (x + 1.0) / 2.0; }
   static float unsignedToSigned(float x) { return (x * 2.0) - 1.0; }
+};
+
+class ShapingFunction {
+public:
+  ShapingFunction() {};
+  
+  virtual double operator()(double x) = 0;
+  static double eval(double x) {};
+  
+  ofParameterGroup parameters;
+protected:
 };
 
 }}}

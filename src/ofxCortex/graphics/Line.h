@@ -25,6 +25,9 @@ public:
   // Helpers
   static ofPath polysToPath(const std::vector<ofPolyline> & polylines);
   
+  static std::vector<ofPolyline> offset(const ofPolyline & source, std::vector<float> offsets, ClipperLib::JoinType jointype = ClipperLib::jtSquare,
+                                        ClipperLib::EndType endtype = ClipperLib::etOpenSquare);
+  
   static ofPolyline getLineSubsection(const ofPolyline & source, float start, float end);
   static ofPolyline getInterpolatedPolyline(const ofPolyline & source, const ofPolyline & target, float t);
   

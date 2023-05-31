@@ -121,6 +121,20 @@ ofPath Line::polysToPath(const std::vector<ofPolyline> & polylines) {
   return path;
 }
 
+std::vector<ofPolyline> Line::offset(const ofPolyline & source, std::vector<float> offsets, ClipperLib::JoinType jointype,
+                                     ClipperLib::EndType endtype)
+{
+  std::vector<ofPolyline> output;
+  
+  for (float offset : offsets)
+  {
+    auto lines = ofx::Clipper::getOffsets({ source }, offset, jointype, endtype);
+    output.insert(output.end(), lines.begin(), lines.end());
+  }
+  
+  return output;
+}
+
 ofPolyline Line::getLineSubsection(const ofPolyline & source, float start, float end)
 {
   if (source.size() == 0) return ofPolyline();
