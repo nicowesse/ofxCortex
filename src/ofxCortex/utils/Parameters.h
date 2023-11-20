@@ -108,6 +108,42 @@ public:
     }
   }
   
+  static const ofAbstractParameter & getParameter(const std::string & name, const ofParameterGroup & parameters)
+  {
+    if (parameters.size() == 0) return parameters;
+    
+    auto searchPath = ofSplitString(name, "::", false, true);
+    
+    if (!parameters.contains(searchPath[0])) 
+    {
+        ofLogWarning("getParameter") << "⚠️ '" << searchPath[0] << "' not found in '" << parameters.getName() << "'";
+        return parameters;
+    }
+    
+    const ofAbstractParameter & foundParameter = parameters.get(searchPath[0]);
+    
+    if (foundParameter.type() == typeid(ofParameterGroup).name()) return getParameter(ofJoinString(std::vector<std::string>(searchPath.begin() + 1, searchPath.end()), "::"), foundParameter.castGroup());
+    else {
+      return foundParameter;
+    }
+  }
+  
+  static std::string serializeName(const ofAbstractParameter & parameter)
+  {
+    vector<string> hierarchy = ofxCortex::core::utils::Array::transform<std::string>(parameter.getGroupHierarchyNames(), [](const std::string & str) { return unescape(str); });
+    
+    return ofJoinString(std::vector<std::string>(hierarchy.begin() + 1, hierarchy.end()), "::");
+  }
+  
+  static std::string unescape(const std::string & _str)
+  {
+    std::string str(_str);
+
+    ofStringReplace(str, "_", " ");
+
+    return str;
+  }
+  
   static void addSpacer(ofParameterGroup & parameters, int spaces = 1)
   {
     static int spacerCount = 0;

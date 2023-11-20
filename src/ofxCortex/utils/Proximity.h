@@ -11,19 +11,13 @@ namespace ofxCortex { namespace core { namespace utils {
     public:
       Proximity() = default;
       
-//      Proximity(glm::ivec3 bins, glm::vec3 position = glm::vec3(), glm::vec3 size = glm::vec3())
-//      : _binCount(bins), _position(position), _size(size)
-//      {
-//
-//      };
-      
-      void setup(glm::ivec3 bins, glm::vec3 position = glm::vec3(), glm::vec3 size = glm::vec3())
+      void setup(glm::ivec3 bins = glm::ivec3(10, 10, 1), glm::vec3 position = glm::vec3(), glm::vec3 size = glm::vec3(ofGetWidth(), ofGetHeight(), 1))
       {
         _binCount = bins;
         _position = position;
         _size = size;
         
-        _bins.resize(_binCount.x * _binCount.y * _binCount.z);
+        _bins.resize(_binCount.x * _binCount.y * (bins.z > 0 ? _binCount.z : 1));
       }
       
       void update()
@@ -34,16 +28,13 @@ namespace ofxCortex { namespace core { namespace utils {
         
         for (auto & obj : _objs)
         {
-          glm::ivec3 indices = getBinIndices(getObjectPosition(obj));
-          
-          if (isValidBin(indices))
-          {
-            _bins[getBinIndex(indices)].push_back(obj);
-          }
+          int index = getBinIndexFromPosition(getObjectPosition(*obj));
+
+          if (isValidBin(index)) { _bins[index].push_back(obj); }
         }
       };
       
-      vector<T*> getNeighbours(glm::vec3 position, float radius)
+      std::vector<std::shared_ptr<T>> getNearby(glm::vec3 position, float radius) const
       {
         
         int minXBin = indexX(position.x - radius);
@@ -53,11 +44,11 @@ namespace ofxCortex { namespace core { namespace utils {
         int minZBin = indexZ(position.z - radius);
         int maxZBin = indexZ(position.z + radius);
         
-        if (maxXBin < minXBin) swap(maxXBin, minXBin);
-        if (maxYBin < minYBin) swap(maxYBin, minYBin);
-        if (maxZBin < minZBin) swap(maxZBin, minZBin);
+        if (maxXBin < minXBin) std::swap(maxXBin, minXBin);
+        if (maxYBin < minYBin) std::swap(maxYBin, minYBin);
+        if (maxZBin < minZBin) std::swap(maxZBin, minZBin);
         
-        vector<T *> neighbours;
+        std::vector<std::shared_ptr<T>> neighbours;
         
         float maxDistance = radius * radius;
         
@@ -69,11 +60,11 @@ namespace ofxCortex { namespace core { namespace utils {
             {
               if (isValidBin(x, y, z))
               {
-                vector<T *> objs = _bins[to1D(x, y, z)];
+                auto objs = _bins[to1D(x, y, z)];
                 
                 for (int i = 0; i < objs.size(); i++)
                 {
-                  float distance = glm::distance2(getObjectPosition(objs[i]), position);
+                  float distance = glm::distance2(getObjectPosition(*objs[i]), position);
                   
                   if (distance <= maxDistance) neighbours.push_back(objs[i]);
                 }
@@ -85,10 +76,15 @@ namespace ofxCortex { namespace core { namespace utils {
         return neighbours;
       };
       
-      void insert(T *obj) { _objs.push_back(obj); }
+      void insert(std::shared_ptr<T> obj) {
+        _objs.push_back(obj);
+        
+//        int index = getBinIndexFromPosition(getObjectPosition(*obj));
+//        if (isValidBin(index)) { _bins[index].push_back(obj); }
+      }
       
       void remove(int index) { _objs.erase(_objs.begin() + index); }
-      void remove(T * obj) { _objs.erase(remove(_objs.begin(), _objs.end(), obj), _objs.end()); }
+      void remove(std::shared_ptr<T> obj) { _objs.erase(remove(_objs.begin(), _objs.end(), obj), _objs.end()); }
       
       
       int count() const { return _objs.size(); }
@@ -99,24 +95,26 @@ namespace ofxCortex { namespace core { namespace utils {
       
     protected:
       
-      bool isValidBin (int x, int y, int z)
+      bool isValidBin(int index) const { return index < _bins.size(); }
+      
+      bool isValidBin (int x, int y, int z) const
       {
         return x >= 0 && x < _binCount.x && y >= 0 && y < _binCount.y && (_binCount.z < 1 || (z >= 0 && z < _binCount.z));
       }
       
-      bool isValidBin (glm::ivec3 indices) { return isValidBin(indices.x, indices.y, indices.z); }
+      bool isValidBin (glm::ivec3 indices) const { return isValidBin(indices.x, indices.y, indices.z); }
       
-      vector<T*> getBin(glm::vec3 position)
+      std::vector<T*> getBin(glm::vec3 position)
       {
-        return _bins[getBinIndex(position)];
+        return _bins[getBinIndexFromPosition(position)];
       };
       
-      int getBinIndex(glm::vec3 pos) const
+      int getBinIndexFromPosition(glm::vec3 pos) const
       {
-        return to1D((glm::ivec3) getBinIndices(pos));
+        return to1D((glm::ivec3) getBinIndicesFromPosition(pos));
       }
       
-      glm::ivec3 getBinIndices(glm::vec3 pos) const
+      glm::ivec3 getBinIndicesFromPosition(glm::vec3 pos) const
       {
         return glm::ivec3(indexX(pos.x), indexY(pos.y), (_binCount.z > 0) ? indexZ(pos.z) : 0);
       }
@@ -135,10 +133,7 @@ namespace ofxCortex { namespace core { namespace utils {
       
       int to1D(glm::ivec3 indices) const { return to1D(indices.x, indices.y, indices.z); }
       
-      virtual glm::vec3 getObjectPosition(T * obj)
-      {
-        return *obj;
-      };
+      virtual glm::vec3 getObjectPosition(const T & obj) const = 0;
       
     protected:
       glm::vec3 _position;
@@ -147,8 +142,10 @@ namespace ofxCortex { namespace core { namespace utils {
       glm::vec3 _binSize;
       glm::ivec3 _binCount;
       
-      vector<T*> _objs;
-      vector<vector<T*> > _bins;
+      std::function<glm::vec3(T*)> _fetchFunction;
+      
+      std::vector<std::shared_ptr<T>> _objs;
+      std::vector<std::vector<std::shared_ptr<T>> > _bins;
     };
   
 }}}
