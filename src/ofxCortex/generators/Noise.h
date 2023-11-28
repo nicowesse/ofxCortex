@@ -36,6 +36,7 @@ public:
   
 protected:
   Noise() {};
+  ~Noise() { _getPerlinShader().unload(); }
   static ofShader & _getPerlinShader();
   static ofShader & _getCellularShader() {};
   static ofShader & _getVoronoiShader() {};
@@ -87,6 +88,7 @@ public:
   
 protected:
   PerlinNoise() {};
+  ~PerlinNoise() { _getPerlinShader().unload(); }
   static ofShader & _getPerlinShader();
   
 public:

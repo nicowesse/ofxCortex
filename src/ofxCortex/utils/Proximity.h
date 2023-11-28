@@ -17,7 +17,7 @@ namespace ofxCortex { namespace core { namespace utils {
         _position = position;
         _size = size;
         
-        _bins.resize(_binCount.x * _binCount.y * (bins.z > 0 ? _binCount.z : 1));
+        _bins.resize(_binCount.x * _binCount.y * MIN(1, _binCount.z)); //(bins.z > 0 ? _binCount.z : 1));
       }
       
       void update()

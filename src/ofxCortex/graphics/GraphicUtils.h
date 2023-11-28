@@ -44,6 +44,24 @@ public:
     }
     ofPopStyle();
   }
+  
+  static void drawPlane(float alpha = 0.1f)
+  {
+    ofPushMatrix();
+    {
+      ofRotateZDeg(90);
+      ofPushStyle();
+      {
+        ofSetColor(255, 255 * alpha);
+        ofDrawGridPlane(100, 25);
+        
+        ofSetColor(255, 255 * alpha * 0.5);
+        ofDrawGridPlane(10, 250);
+      }
+      ofPopStyle();
+    }
+    ofPopMatrix();
+  }
 };
 
 }}}
