@@ -15,6 +15,7 @@
 #include <random>
 #include <chrono>
 #include <functional>
+#include <algorithm>
 #include "ofxCortex/types/Box.h"
 
 
@@ -168,6 +169,32 @@ static ofRectangle getImageRectangle(const ofBaseDraws & image)
   return ofRectangle(0, 0, image.getWidth(), image.getHeight());
 }
 
+static ofRectangle getBitmapStringBoundingBox(const std::string & text)
+{
+  std::vector<std::string> lines = ofSplitString(text, "\n");
+  int maxLineLength = 0;
+  for (int i = 0; i < lines.size(); i++) {
+    // tabs are not rendered
+    const std::string & line(lines[i]);
+    int currentLineLength = 0;
+    for (int j = 0; j < line.size(); j++) {
+      if (line[j] == '\t') {
+        currentLineLength += 8 - (currentLineLength % 8);
+      } else {
+        currentLineLength++;
+      }
+    }
+    maxLineLength = MAX(maxLineLength, currentLineLength);
+  }
+  
+  int padding = 4;
+  int fontSize = 8;
+  float leading = 1.7;
+  int height = lines.size() * fontSize * leading - 1;
+  int width = maxLineLength * fontSize;
+  return ofRectangle(0, 0, width, height);
+}
+
 static void drawTexCoordRectangle(float x = 0.0f, float y = 0.0f, float w = 1.0f, float h = 1.0f)
 {
   static ofMesh mesh;
@@ -272,13 +299,13 @@ static ofFloatColor metallicPalette(float t) { return proceduralPalette(t, glm::
 namespace Array {
 
 template<typename T>
-static T & at(std::vector<T> & v, int index)
+static T & atWrapped(std::vector<T> & v, int index)
 {
   return v[modulo(index, v.size())];
 }
 
 template<typename T>
-static T randomInVector(std::vector<T> const &v)
+static T randomInVector(const std::vector<T> & v)
 {
   auto it = v.cbegin();
   int random = rand() % v.size();
@@ -290,21 +317,21 @@ static T randomInVector(std::vector<T> const &v)
 template<typename T>
 std::vector<T> exclude(const std::vector<T>& input, const std::vector<T>& exclude) {
   std::vector<T> result;
-  std::copy_if(input.begin(), input.end(), std::back_inserter(result), [&](const T& element) {
-    return std::find(exclude.begin(), exclude.end(), element) == exclude.end();
+  std::copy_if(input.cbegin(), input.cend(), std::back_inserter(result), [&](const T& element) {
+    return std::find(exclude.cbegin(), exclude.cend(), element) == exclude.cend();
   });
   return result;
 }
 
 template<typename T>
-void remove(std::vector<T>& source, const std::vector<T>& remove) {
+static void remove(std::vector<T>& source, const std::vector<T>& remove) {
   source.erase(std::remove_if(source.begin(), source.end(), [&remove](const T& item) {
     return std::find(remove.cbegin(), remove.cend(), item) != remove.cend();
   }), source.end());
 }
 
 template<typename T>
-static T randomInVectorExcept(std::vector<T> const &v, const std::vector<T>& except) { return randomInVector(exclude(v, except)); }
+static T randomInVectorExcept(const std::vector<T> &v, const std::vector<T>& except) { return randomInVector(exclude(v, except)); }
 
 template<typename T>
 void subtractFromVector(std::vector<T>& input, const std::vector<T>& subtract) {
@@ -316,6 +343,7 @@ static std::vector<T> constructVector(int n, std::function<T(int)> func = [](int
 {
   std::vector<T> output(n);
   for (int i = 0; i < n; i++) output[i] = func(i);
+//  std::generate(output.begin(), output.end(), func);
   return output;
 }
 
@@ -364,6 +392,14 @@ static std::vector<T> randomSubset(const std::vector<T>& v, std::size_t size) {
   return result;
 }
 
+//template<typename T>
+//static std::vector<T> sample(const std::vector<T> & v, std::size_t n)
+//{
+//  std::vector<T> output;
+//  std::sample(v.begin(), v.end(), std::back_inserter(output), n, std::mt19937 {std::random_device{}()});
+//  return output;
+//}
+
 template<typename T>
 static void appendVector(std::vector<T> & original, std::vector<T> & appending)
 {
@@ -402,14 +438,14 @@ static std::vector<T> normalize(const std::vector<T> & v)
 template<typename T>
 static std::vector<T> intersection(const std::vector<T> & a, const std::vector<T> & b)
 {
-  std::vector<T> output;
   std::vector<T> A = a;
   std::vector<T> B = b;
   
   std::sort(A.begin(), A.end());
   std::sort(B.begin(), B.end());
   
-  std::set_intersection(A.begin(),A.end(), B.begin(),B.end(), std::back_inserter(output));
+  std::vector<T> output;
+  std::set_intersection(A.begin(), A.end(), B.begin(), B.end(), std::back_inserter(output));
   return output;
 }
 
@@ -423,8 +459,20 @@ static std::vector<T> difference(const std::vector<T> & a, const std::vector<T> 
   std::sort(A.begin(), A.end());
   std::sort(B.begin(), B.end());
   
-  std::set_difference(A.begin(),A.end(), B.begin(),B.end(), std::back_inserter(output));
+  std::set_difference(A.begin(), A.end(), B.begin(), B.end(), std::back_inserter(output));
   return output;
+}
+
+template<typename T>
+static bool includes(const std::vector<T> & a, const std::vector<T> & b)
+{
+  std::vector<T> A = a;
+  std::vector<T> B = b;
+  
+  std::sort(A.begin(), A.end());
+  std::sort(B.begin(), B.end());
+  
+  return std::includes(A.begin(), A.end(), B.begin(), B.end());
 }
 
 enum CoordinateEdges {
@@ -487,7 +535,8 @@ unsigned int measure(Func&& func, Args&&... args) {
 
 namespace Music {
 
-static float BPMtoPeriod(const float & BPM) { return 60.0 / BPM; }
+static float BPMtoPeriod(float BPM)     { return 60.0 / BPM; }
+static float PeriodToBPM(float period)  { return 60.0 / period; }
 
 }
 
