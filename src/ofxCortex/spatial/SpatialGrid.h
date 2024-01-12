@@ -1,5 +1,7 @@
 #pragma once
 
+namespace ofxCortex { namespace core { namespace utils {
+
 struct SpatialGridItem {
   SpatialGridItem(int index, float x, float y, float radius) : index(index), position(x, y), radius(radius) {};
   
@@ -124,9 +126,14 @@ public:
         int neighbor = cellIndex + ix + (iy * cellsPerX);
         if (neighbor < 0 || neighbor >= gridCells.size()) continue;
         
-        if (gridCells[neighbor].intersectsCell(x, y, radius)) gridCells[neighbor].contents.push_back(spatialGridItem);
+        if (gridCells[neighbor].intersectsCell(x, y, radius)) {
+          gridCells[neighbor].contents.push_back(spatialGridItem);
+          return true;
+        }
       }
     }
+    
+    return false;
   }
   
   bool addIfOpen(const T & item, float x, float y, float radius)
@@ -223,3 +230,5 @@ protected:
   
   
 };
+
+}}}

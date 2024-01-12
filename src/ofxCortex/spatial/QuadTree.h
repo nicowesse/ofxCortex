@@ -2,6 +2,8 @@
 
 #include "ofMain.h"
 
+namespace ofxCortex { namespace core { namespace utils {
+
 constexpr size_t MAX_QUADTREE_DEPTH = 8;
 
 template<typename T>
@@ -149,3 +151,5 @@ protected:
   std::function<ofRectangle(const T&)> getArea;
   std::function<glm::vec2(const T&)> getPosition;
 };
+
+}}}
