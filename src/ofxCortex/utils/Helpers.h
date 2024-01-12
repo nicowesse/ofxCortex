@@ -17,32 +17,30 @@
 #include <functional>
 #include <algorithm>
 #include "ofxCortex/types/Box.h"
+#include "ofxCortex/utils/Numbers.h"
+#include <type_traits>
+
+
+#define ALIAS_TEMPLATE_FUNCTION(highLevelF, lowLevelF) \
+template<typename... Args> \
+inline auto highLevelF(Args&&... args) -> decltype(lowLevelF(std::forward<Args>(args)...)) \
+{ \
+    return lowLevelF(std::forward<Args>(args)...); \
+}
+
+// Helper to determine whether there's a const_iterator for T.
+template<typename T>
+struct has_const_iterator
+{
+private:
+  template<typename C> static char test(typename C::const_iterator*);
+  template<typename C> static int  test(...);
+public:
+  enum { value = sizeof(test<T>(0)) == sizeof(char) };
+};
 
 
 namespace ofxCortex { namespace core { namespace utils {
-
-static float roundToNearest(float value, float multiple)
-{
-  if (multiple == 0)
-    return value;
-  
-  int remainder = fmod(abs(value), multiple);
-  if (remainder == 0)
-    return value;
-  
-  if (value < 0)
-    return -(abs(value) - remainder);
-  else
-    return value + multiple - remainder;
-};
-
-static double floorToNearest(double value, double multiple)
-{
-  double divider = 1.0 / multiple;
-  return floor(value * divider) / divider;
-}
-
-static unsigned long modulo(int a, int b) { return (b + (a % b)) % b; }
 
 static glm::vec2 randomInRectangle(const ofRectangle & rect)
 {
@@ -229,72 +227,6 @@ static void drawTexCoordRectangle(const ofRectangle & rect) {
   drawTexCoordRectangle(rect.x, rect.y, rect.width, rect.height);
 }
 
-static void drawAxis(const glm::vec3 & position = glm::vec3(0), float scale = 10.0f)
-{
-  ofPushMatrix();
-  {
-    ofTranslate(position);
-    ofScale(scale);
-    
-    ofPushStyle();
-    {
-      ofFill();
-      
-      ofSetColor(ofColor::tomato);
-      ofDrawArrow(glm::vec3(0, 0, 0), glm::vec3(1, 0, 0), 0.05);
-      ofDrawBitmapString("X", 1.1, -0.025, -0.025);
-      
-      ofSetColor(ofColor::springGreen);
-      ofDrawArrow(glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), 0.05);
-      ofDrawBitmapString("Y", -0.025, 1.1, -0.025);
-      
-      ofSetColor(ofColor::dodgerBlue);
-      ofDrawArrow(glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), 0.05);
-      ofDrawBitmapString("Z", -0.025, -0.025, 1.1);
-      
-      ofSetColor(ofColor::black);
-      ofDrawSphere(0.05);
-    }
-    ofPopStyle();
-  }
-  ofPopMatrix();
-}
-
-#pragma mark - Color
-namespace Color {
-
-static std::vector<ofColor> fromCoolors(const std::string & URL)
-{
-  auto hexCodes = ofSplitString(URL.substr(URL.find_last_of("/") + 1), "-");
-  std::vector<ofColor> output;
-  
-  for (auto & hexString : hexCodes)
-  {
-    unsigned int hexValue;
-    std::istringstream iss(hexString);
-    iss >> std::hex >> hexValue;
-    
-    int r = ((hexValue >> 16) & 0xFF);  // Extract the RR byte
-    int g = ((hexValue >> 8) & 0xFF);   // Extract the GG byte
-    int b = ((hexValue) & 0xFF);
-    
-    output.push_back(ofColor(r, g, b));
-  }
-  
-  return output;
-}
-
-static ofFloatColor proceduralPalette(float t, glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 d)
-{
-  glm::vec3 color = a + b * cos(TWO_PI * (c * t + d));
-  return ofFloatColor(color.r, color.g, color.b);
-}
-
-static ofFloatColor rainbowPalette(float t) { return proceduralPalette(t, glm::vec3(0.5), glm::vec3(0.5), glm::vec3(1.0), glm::vec3(0.0, 0.33, 0.67)); }
-static ofFloatColor metallicPalette(float t) { return proceduralPalette(t, glm::vec3(0.5), glm::vec3(0.5), glm::vec3(1.0), glm::vec3(0.0, 0.1, 0.2)); }
-
-}
-
 #pragma mark - Array
 namespace Array {
 
@@ -313,6 +245,8 @@ static T randomInVector(const std::vector<T> & v)
   
   return *it;
 }
+
+ALIAS_TEMPLATE_FUNCTION(sample, randomInVector)
 
 template<typename T>
 std::vector<T> exclude(const std::vector<T>& input, const std::vector<T>& exclude) {
@@ -333,8 +267,16 @@ static void remove(std::vector<T>& source, const std::vector<T>& remove) {
 template<typename T>
 static T randomInVectorExcept(const std::vector<T> &v, const std::vector<T>& except) { return randomInVector(exclude(v, except)); }
 
+ALIAS_TEMPLATE_FUNCTION(sampleExcept, randomInVectorExcept)
+
 template<typename T>
-void subtractFromVector(std::vector<T>& input, const std::vector<T>& subtract) {
+static T sampleExcept(const std::vector<T> & v, const T& except)
+{
+  return randomInVectorExcept(v, { except });
+}
+
+template <template <typename, typename> class Container, typename T, typename Allocator = std::allocator<T>>
+void subtractFromVector(Container<T, Allocator>& input, const Container<T, Allocator>& subtract) {
   input.erase(std::remove_if(input.begin(), input.end(), [&subtract](T element) { return std::find(subtract.begin(), subtract.end(), element) != subtract.end(); }), input.end());
 }
 
@@ -355,6 +297,15 @@ static std::vector<T> constructVector(int columns, int rows, std::function<T(int
   {
     for (int column = 0; column < columns; column++) { output[column + row * columns] = func(column, row); }
   }
+  return output;
+}
+
+template<typename T>
+static std::vector<T> flatten(const std::vector<std::vector<T>> & v)
+{
+  std::vector<T> output;
+  for(const auto & x : v)
+    output.insert(output.end(), x.begin(), x.end());
   return output;
 }
 
@@ -392,19 +343,16 @@ static std::vector<T> randomSubset(const std::vector<T>& v, std::size_t size) {
   return result;
 }
 
-//template<typename T>
-//static std::vector<T> sample(const std::vector<T> & v, std::size_t n)
-//{
-//  std::vector<T> output;
-//  std::sample(v.begin(), v.end(), std::back_inserter(output), n, std::mt19937 {std::random_device{}()});
-//  return output;
-//}
+ALIAS_TEMPLATE_FUNCTION(sampleN, randomSubset)
 
-template<typename T>
-static void appendVector(std::vector<T> & original, std::vector<T> & appending)
+//template<typename T>
+template<typename T, template<typename, typename> class Container, typename Allocator = std::allocator<T>>
+static void appendVector(Container<T, Allocator> & original, Container<T, Allocator> & appending)
 {
   original.insert(std::end(original), std::begin(appending), std::end(appending));
 }
+
+ALIAS_TEMPLATE_FUNCTION(append, appendVector)
 
 template<typename OutputType, typename InputType, typename Func>
 static std::vector<OutputType> transform(const std::vector<InputType> & v, Func func)
@@ -414,25 +362,56 @@ static std::vector<OutputType> transform(const std::vector<InputType> & v, Func 
   return output;
 }
 
-template<typename T, typename Func>
-static std::vector<T> filter(const std::vector<T> & v, Func func)
+template<typename T, template <typename, typename...> class Container, typename... Args, typename Func, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
+static std::vector<T> filter(const Container<T, Args...> & v, Func func)
 {
   std::vector<T> output;
   std::copy_if(begin(v), end(v), std::back_inserter(output), func);
   return output;
 }
 
-template<typename InputType, typename OutputType, typename Func>
-static OutputType accumulate(const std::vector<InputType> & v, Func func, OutputType initialValue = OutputType(0))
+//template<typename InputType, typename OutputType, typename Func>
+//static OutputType accumulate(const std::vector<InputType> & v, Func func, OutputType initialValue = OutputType(0))
+//{
+//  return std::accumulate(begin(v), end(v), initialValue, func);
+//}
+
+template <
+  typename InputType,
+  typename OutputType = InputType,
+  template <typename, typename...> class Container,
+  typename... Args,
+  typename Func = std::plus<InputType>,
+  typename = typename std::enable_if<std::is_arithmetic<InputType>::value, InputType>::type
+>
+static OutputType accumulate(const Container<InputType, Args...>& container, Func func = Func())
 {
-  return std::accumulate(begin(v), end(v), initialValue, func);
+    return std::accumulate(container.begin(), container.end(), OutputType(), func);
 }
 
 template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
 static std::vector<T> normalize(const std::vector<T> & v)
 {
-  T total = accumulate<T, T>(v, [](T x, T total) { return total + x; });
+  T total = accumulate<T, T>(v, [](T carry, T x) { return carry + x; });
   return transform<T, T>(v, [&](T x) { return x / total; });
+}
+
+template<typename T, template <typename, typename...> class Container, typename... Args, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
+static T average(const Container<T, Args...> & v)
+{
+  return accumulate<T, T>(v, [](T carry, T x) { return carry + x; }) / v.size();
+}
+
+template<typename T, template <typename, typename...> class Container, typename... Args, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
+static T median(const Container<T, Args...> & v)
+{
+  auto sorted = v;
+  std::sort(begin(sorted), end(sorted));
+  
+  size_t size = v.size();
+  
+  if (size % 2 == 0) return (v[(size - 1) / 2] + v[size / 2]) / 2.0;
+  else return v[size / 2];
 }
 
 template<typename T>
@@ -520,6 +499,42 @@ static glm::ivec2 indexToCoordinate(int index, glm::ivec2 size)
   
   return coord;
 }
+}
+
+#pragma mark - Color
+namespace Color {
+
+static ofColor hexToColor(const std::string & hex)
+{
+  unsigned int hexValue;
+  std::istringstream iss(hex);
+  iss >> std::hex >> hexValue;
+  
+  int r = ((hexValue >> 16) & 0xFF);  // Extract the RR byte
+  int g = ((hexValue >> 8) & 0xFF);   // Extract the GG byte
+  int b = ((hexValue) & 0xFF);
+  
+  return ofColor(r, g, b);
+}
+
+static std::vector<ofColor> fromCoolors(const std::string & URL)
+{
+  std::vector<std::string> hexCodes = ofSplitString(URL.substr(URL.find_last_of("/") + 1), "-");
+  
+  return Array::transform<ofColor>(hexCodes, &Color::hexToColor);
+}
+
+static ofFloatColor proceduralPalette(float t, glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 d)
+{
+  t = ofWrap(t, 0.0, 1.0);
+  
+  glm::vec3 color = a + b * cos(TWO_PI * (c * t + d));
+  return ofFloatColor(color.r, color.g, color.b);
+}
+
+static ofFloatColor rainbowPalette(float t) { return proceduralPalette(t, glm::vec3(0.5), glm::vec3(0.5), glm::vec3(1.0), glm::vec3(0.0, 0.33, 0.67)); }
+static ofFloatColor metallicPalette(float t) { return proceduralPalette(t, glm::vec3(0.5), glm::vec3(0.5), glm::vec3(1.0), glm::vec3(0.0, 0.1, 0.2)); }
+
 }
 
 namespace Performance {

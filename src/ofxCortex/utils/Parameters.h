@@ -130,7 +130,7 @@ public:
   
   static std::string serializeName(const ofAbstractParameter & parameter)
   {
-    vector<string> hierarchy = ofxCortex::core::utils::Array::transform<std::string>(parameter.getGroupHierarchyNames(), [](const std::string & str) { return unescape(str); });
+    std::vector<std::string> hierarchy = ofxCortex::core::utils::Array::transform<std::string>(parameter.getGroupHierarchyNames(), [](const std::string & str) { return unescape(str); });
     
     return ofJoinString(std::vector<std::string>(hierarchy.begin() + 1, hierarchy.end()), "::");
   }

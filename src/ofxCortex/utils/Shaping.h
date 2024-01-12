@@ -1,5 +1,9 @@
 #pragma once
 
+#include "ofLog.h"
+#include "ofUtils.h"
+#include "ofParameterGroup.h"
+
 namespace ofxCortex { namespace core { namespace utils {
 
 class Shaping {
@@ -43,6 +47,8 @@ public:
   template<typename T>
   static T interpolate(const vector<T> & values, float t)
   {
+    if (values.size() == 1) return values[0];
+    
     std::vector<T> combined;
     for_each_pair(begin(values), end(values), [&](const T & a, const T & b) {
       combined.push_back(ofInterpolateCosine(a, b, t));
@@ -51,6 +57,20 @@ public:
     if (combined.size() == 1) return combined[0];
     else return interpolate(combined, t);
   }
+  
+//  template<>
+//  static ofColor interpolate(const vector<ofColor> & values, float t)
+//  {
+//    if (values.size() == 1) return values[0];
+//    
+//    std::vector<ofColor> combined;
+//    for_each_pair(begin(values), end(values), [&](const ofColor & a, const ofColor & b) {
+//      combined.push_back(a.getLerped(b, t));
+//    });
+//    
+//    if (combined.size() == 1) return combined[0];
+//    else return interpolate(combined, t);
+//  }
   
 protected:
   template< typename FwdIter, typename Func >
@@ -110,7 +130,7 @@ public:
   
   virtual double operator()(double x) override
   {
-    x = CLAMP(x, 0, 1);
+    x = ofClamp(x, 0, 1);
     return pow(x, amplitude.get()) / (pow(x, amplitude.get()) + pow(bias.get() - bias.get() * x, amplitude.get()));
   }
   

@@ -1,11 +1,44 @@
 #pragma once
 
 #include "ofRectangle.h"
+#include "ofGraphics.h"
+#include "of3dGraphics.h"
+#include "of3dUtils.h"
 
 namespace ofxCortex { namespace core { namespace graphics {
 
 class Utils {
 public:
+  static void drawAxis(const glm::vec3 & position = glm::vec3(0), float scale = 10.0f)
+  {
+    ofPushMatrix();
+    {
+      ofTranslate(position);
+      ofScale(scale);
+      
+      ofPushStyle();
+      {
+        ofFill();
+        
+        ofSetColor(ofColor::tomato);
+        ofDrawArrow(glm::vec3(0, 0, 0), glm::vec3(1, 0, 0), 0.05);
+        ofDrawBitmapString("X", 1.1, -0.025, -0.025);
+        
+        ofSetColor(ofColor::springGreen);
+        ofDrawArrow(glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), 0.05);
+        ofDrawBitmapString("Y", 0, 1.1, 0);
+        
+        ofSetColor(ofColor::dodgerBlue);
+        ofDrawArrow(glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), 0.05);
+        ofDrawBitmapString("Z", -0.025, -0.025, 1.1);
+        
+        ofSetColor(ofColor::black);
+        ofDrawSphere(0.05);
+      }
+      ofPopStyle();
+    }
+    ofPopMatrix();
+  }
   
   static void drawGrid(const ofRectangle & bounds, int columns, int rows, ofColor lineColor = ofColor(255), bool drawCenters = false)
   {
@@ -53,14 +86,22 @@ public:
       ofPushStyle();
       {
         ofSetColor(255, 255 * alpha);
-        ofDrawGridPlane(100, 25);
+        ofDrawGridPlane(1000, 25);
         
         ofSetColor(255, 255 * alpha * 0.5);
-        ofDrawGridPlane(10, 250);
+        ofDrawGridPlane(100, 250);
       }
       ofPopStyle();
     }
     ofPopMatrix();
+    
+    ofPushStyle();
+    {
+      ofSetColor(255, 255 * alpha * 1.5);
+      ofDrawLine(-100 * 25, 1, 0, 100 * 25, 1, 0);
+      ofDrawLine(0, 1, -100 * 25, 0, 1, 100 * 25);
+    }
+    ofPopStyle();
   }
 };
 

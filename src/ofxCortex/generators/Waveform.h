@@ -6,16 +6,18 @@ namespace ofxCortex { namespace core { namespace generators {
 
 class Waveform {
 public:
-  enum Type {
+  enum class Type {
     SINE, TRIANGLE, SQUARE, SAWTOOTH
   };
   
   struct Settings {
-    Type type { SINE };
+    Type type { Type::SINE };
     double period { 1.0 };
     double amplitude { 1.0 };
     double shift { 0.0 };
     bool unsign { false };
+    
+    void BPMtoPeriod(float BPM) { this->period = 60.0 / BPM; }
   };
   
 public:
@@ -35,10 +37,10 @@ public:
   static double wave(double x, Waveform::Type type, double period, double amplitude = 1.0, double shift = 1.0, bool unsign = false)
   {
     switch (type) {
-      case SINE: return sine(x, period, amplitude, shift, unsign); break;
-      case TRIANGLE: return triangle(x, period, amplitude, shift, unsign); break;
-      case SQUARE: return square(x, period, amplitude, shift, unsign); break;
-      case SAWTOOTH: return sawtooth(x, period, amplitude, shift, unsign); break;
+      case Type::SINE: return sine(x, period, amplitude, shift, unsign); break;
+      case Type::TRIANGLE: return triangle(x, period, amplitude, shift, unsign); break;
+      case Type::SQUARE: return square(x, period, amplitude, shift, unsign); break;
+      case Type::SAWTOOTH: return sawtooth(x, period, amplitude, shift, unsign); break;
     }
   }
   
@@ -51,7 +53,7 @@ public:
   // Sine
   double sine(double x)
   {
-    return sine(x, this->settings);
+    return Waveform::sine(x, this->settings);
   }
   
   static double sine(double x, double period, double amplitude = 1.0, double shift = 0.0, bool unsign = false)
@@ -129,7 +131,7 @@ public:
     utils::Parameters::addParameter<float>("Period", 1.0f, 0.0f, 500.f, waveformParameters);
     utils::Parameters::addParameter<float>("Amplitude", 1.0f, 0.0f, 20.0f, waveformParameters);
     utils::Parameters::addParameter<float>("Shift", 0.0f, -10.f, 10.f, waveformParameters);
-    utils::Parameters::addParameter<bool>("Signed", true, waveformParameters);
+    utils::Parameters::addParameter<bool>("Unsigned", true, waveformParameters);
     
     return waveformParameters;
   }
@@ -137,10 +139,10 @@ public:
   static Settings getSettings(const ofParameterGroup & parameters) {
     Settings s;
     
-    s.period = utils::Parameters::getParameter<float>("Period", parameters);
-    s.amplitude = utils::Parameters::getParameter<float>("Amplitude", parameters);
-    s.shift = utils::Parameters::getParameter<float>("Shift", parameters);
-    s.unsign = !utils::Parameters::getParameter<bool>("Signed", parameters);
+    s.period = utils::Parameters::getParameter<float>("Waveform::Period", parameters);
+    s.amplitude = utils::Parameters::getParameter<float>("Waveform::Amplitude", parameters);
+    s.shift = utils::Parameters::getParameter<float>("Waveform::Shift", parameters);
+    s.unsign = utils::Parameters::getParameter<bool>("Waveform::Unsigned", parameters);
     
     return s;
   }
@@ -152,12 +154,12 @@ protected:
   }
   
   Type stringToType(const std::string & type) {
-    if (type == "sine") { return SINE; }
-    if (type == "triangle") { return TRIANGLE; }
-    if (type == "square") { return SQUARE; }
-    if (type == "sawtooth") { return SAWTOOTH; }
+    if (type == "sine") { return Type::SINE; }
+    if (type == "triangle") { return Type::TRIANGLE; }
+    if (type == "square") { return Type::SQUARE; }
+    if (type == "sawtooth") { return Type::SAWTOOTH; }
     
-     return SINE;
+    return Type::SINE;
   }
   
   ofEventListener settingsChanged;

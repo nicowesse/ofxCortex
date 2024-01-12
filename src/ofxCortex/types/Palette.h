@@ -8,10 +8,8 @@ namespace ofxCortex { namespace core { namespace types {
 class Palette
 {
 public:
-  ofEvent<void> onPaletteChanged;
-  
+  Palette() = default;
   Palette(std::vector<ofColor> _colors) : colors(_colors) {}
-  
   Palette(const Palette &other) : colors(other.colors)  { }
   
   Palette& operator= (const Palette &other)
@@ -69,6 +67,8 @@ public:
     
     return is;
   }
+  
+  ofEvent<void> onPaletteChanged;
   
 protected:
   std::vector<ofColor> colors;

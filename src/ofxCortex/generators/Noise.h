@@ -38,8 +38,6 @@ protected:
   Noise() {};
   ~Noise() { _getPerlinShader().unload(); }
   static ofShader & _getPerlinShader();
-  static ofShader & _getCellularShader() {};
-  static ofShader & _getVoronoiShader() {};
   
 public:
   static double getNoise(const glm::vec3 & sample, Noise::Settings settings);
