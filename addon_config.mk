@@ -29,7 +29,7 @@ common:
 	# include search paths, this will be usually parsed from the file system
 	# but if the addon or addon libraries need special search paths they can be
 	# specified here separated by spaces or one per line using +=
-	# ADDON_INCLUDES =
+	ADDON_INCLUDES = src libs
 
 	# any special flag that should be passed to the compiler when using this
 	# addon
@@ -61,9 +61,9 @@ common:
 	# ADDON_LIBS_EXCLUDE =
 
 osx:
-	ADDON_INCLUDES = src
+	ADDON_INCLUDES = src libs
 	ADDON_DEPENDENCIES = ofxTweenzor
 
 vs:
-	ADDON_INCLUDES = src
+	ADDON_INCLUDES = src libs
 	ADDON_DEPENDENCIES = ofxTweenzor

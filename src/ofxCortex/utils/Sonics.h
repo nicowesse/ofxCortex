@@ -177,9 +177,9 @@ protected:
   }
   
   ofEventListeners listeners;
-  ofParameter<int> attackRateParameter { "Attack", 0, 0, 4000, "ms" };
-  ofParameter<int> decayRateParameter { "Decay", 0, 0, 4000, "ms" };
-  ofParameter<int> releaseRateParameter { "Release", 0, 0, 4000, "ms" };
+  ofParameter<int> attackRateParameter { "Attack", 0, 0, 4000 };
+  ofParameter<int> decayRateParameter { "Decay", 0, 0, 4000 };
+  ofParameter<int> releaseRateParameter { "Release", 0, 0, 4000 };
   ofParameter<float> sustainLevelParameter { "Sustain", 1.0f, 0.0f, 1.0f };
   
   State state;
@@ -253,7 +253,7 @@ public:
     startThread();
     
     parameters.setName("Beat");
-    parameters.add(BPM.set("BPM", 120, 60, 280, "BPM"));
+    parameters.add(BPM.set("BPM", 120, 60, 280));
     BPM.addListener(this, &Beat::setBPMInternal);
   }
   
@@ -308,7 +308,7 @@ protected:
   ofTimer timer;
   unsigned long beat { 0 };
   
-  ofParameter<int> BPM { 120.0 };
+  ofParameter<int> BPM { "BPM", 120, 60, 200 };
   void setBPMInternal(int & param) { this->setBPM(param); }
   
   inline uint64_t BPMtoNano(double bpm)

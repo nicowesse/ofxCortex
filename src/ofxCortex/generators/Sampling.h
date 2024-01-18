@@ -7,7 +7,7 @@
 #include "ofRectangle.h"
 #include <glm/vec2.hpp>
 #include "ofxCortex/types/Box.h"
-#include "SpatialGrid.h"
+#include "ofxCortex/spatial/SpatialGrid.h"
 
 namespace ofxCortex { namespace core { namespace generators {
 
