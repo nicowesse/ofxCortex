@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ofxClipper.h"
+#include "ofxCortex/libs/ofxClipper/src/Clipper.h"
 #include "ofGraphics.h"
 #include "ofMath.h"
 #include "ofxCortex/utils/Helpers.h"

@@ -9,7 +9,7 @@
 
 
 #include <vector>
-#include "clipper.hpp"
+#include "ofxCortex/libs/ofxClipper/libs/clipper/src/clipper.hpp"
 #include "ofPolyline.h"
 #include "ofPath.h"
 
