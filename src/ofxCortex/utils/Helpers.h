@@ -18,6 +18,7 @@
 #include <algorithm>
 #include "ofxCortex/types/Box.h"
 #include "ofxCortex/utils/Numbers.h"
+#include "ofxCortex/utils/Shaping.h"
 #include <type_traits>
 
 
@@ -534,6 +535,29 @@ static ofFloatColor proceduralPalette(float t, glm::vec3 a, glm::vec3 b, glm::ve
 
 static ofFloatColor rainbowPalette(float t) { return proceduralPalette(t, glm::vec3(0.5), glm::vec3(0.5), glm::vec3(1.0), glm::vec3(0.0, 0.33, 0.67)); }
 static ofFloatColor metallicPalette(float t) { return proceduralPalette(t, glm::vec3(0.5), glm::vec3(0.5), glm::vec3(1.0), glm::vec3(0.0, 0.1, 0.2)); }
+
+static ofMesh getGradientMesh(const std::vector<ofColor> & colors, float w = 1.0, float h = 1.0)
+{
+  ofMesh mesh;
+  mesh.setMode(OF_PRIMITIVE_TRIANGLE_STRIP);
+  
+  int steps = w / 10.0;
+  
+  for (int i = 0; i < steps; i++)
+  {
+    float t = i / (float)(steps - 1);
+    
+    ofColor c = ofxCortex::core::utils::Shaping::interpolate(colors, t);
+    
+    float x = t * w;
+    mesh.addVertex(glm::vec3(x, 0, 0));
+    mesh.addColor(c);
+    mesh.addVertex(glm::vec3(x, h, 0));
+    mesh.addColor(c);
+  }
+  
+  return mesh;
+}
 
 }
 

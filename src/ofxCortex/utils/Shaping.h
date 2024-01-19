@@ -2,6 +2,7 @@
 
 #include "ofLog.h"
 #include "ofUtils.h"
+#include "ofMath.h"
 #include "ofParameterGroup.h"
 
 namespace ofxCortex { namespace core { namespace utils {
@@ -44,33 +45,34 @@ public:
   static float signedToUnsigned(float x) { return (x + 1.0) / 2.0; }
   static float unsignedToSigned(float x) { return (x * 2.0) - 1.0; }
   
-  template<typename T>
-  static T interpolate(const vector<T> & values, float t)
-  {
-    if (values.size() == 1) return values[0];
-    
-    std::vector<T> combined;
-    for_each_pair(begin(values), end(values), [&](const T & a, const T & b) {
-      combined.push_back(ofInterpolateCosine(a, b, t));
-    });
-    
-    if (combined.size() == 1) return combined[0];
-    else return interpolate(combined, t);
-  }
-  
-//  template<>
-//  static ofColor interpolate(const vector<ofColor> & values, float t)
+  // Pair-wise Interpolate
+//  template<typename T>
+//  static T interpolate(const std::vector<T> & values, float t)
 //  {
 //    if (values.size() == 1) return values[0];
 //    
-//    std::vector<ofColor> combined;
-//    for_each_pair(begin(values), end(values), [&](const ofColor & a, const ofColor & b) {
-//      combined.push_back(a.getLerped(b, t));
+//    std::vector<T> combined;
+//    for_each_pair(begin(values), end(values), [&](const T & a, const T & b) {
+//      combined.push_back(ofInterpolateCosine(a, b, t));
 //    });
 //    
 //    if (combined.size() == 1) return combined[0];
 //    else return interpolate(combined, t);
 //  }
+  
+  template<typename T>
+  static T interpolate(const std::vector<T> & values, float t)
+  {
+    if (values.size() == 1 || ofIsFloatEqual(t, 0.0f)) return values[0];
+    if (ofIsFloatEqual(t, 1.0f)) return values[values.size() - 1];
+    
+    float valueT = t * (values.size() - 1);
+    int lower = floor(valueT);
+    int upper = ceil(valueT);
+    float interpolateT = ofClamp(valueT - lower, 0.0, 1.0);
+    
+    return ofInterpolateCosine(values[lower], values[upper], interpolateT);
+  }
   
 protected:
   template< typename FwdIter, typename Func >

@@ -10,3 +10,4 @@ namespace ofxCortex { namespace core { namespace types {
 #include "Image.h"
 #include "Range.h"
 #include "Spacer.h"
+#include "Palette.h"
