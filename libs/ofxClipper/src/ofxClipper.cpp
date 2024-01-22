@@ -5,10 +5,7 @@
 //
 
 
-#include "Clipper.h"
-
-
-namespace ofx {
+#include "ofxClipper.h"
 
 
 const ClipperLib::cInt Clipper::DEFAULT_CLIPPER_SCALE = 1000000000;
@@ -460,6 +457,3 @@ std::vector<ofPolyline> Clipper::reversePolylines(const std::vector<ofPolyline>&
     ClipperLib::ReversePaths(p);
     return toOf(p, true, scale);
 }
-
-
-} // namespace ofx

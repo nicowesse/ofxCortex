@@ -4,7 +4,7 @@ namespace ofxCortex { namespace core { namespace graphics {
 
 ofPath Line::getLinePath(const ofPolyline & source, float thickness, ClipperLib::JoinType jointype, ClipperLib::EndType endtype)
 {
-  return polysToPath(ofx::Clipper::getOffsets({ source }, thickness, jointype, endtype));
+  return polysToPath(Clipper::getOffsets({ source }, thickness, jointype, endtype));
 }
 
 void Line::drawPolyline(const ofPolyline & source, float thickness, ofFloatColor color, ClipperLib::JoinType jointype, ClipperLib::EndType endtype)
@@ -19,7 +19,7 @@ void Line::drawPolyline(const ofPolyline & source, float thickness, ofFloatColor
     return;
   }
   
-  ofPath path = polysToPath(ofx::Clipper::getOffsets({ source }, thickness, jointype, endtype));
+  ofPath path = polysToPath(Clipper::getOffsets({ source }, thickness, jointype, endtype));
   path.setFillColor(color);
   path.draw();
 }
@@ -264,7 +264,7 @@ std::vector<ofPolyline> Line::getOffsets(const ofPolyline & source, std::vector<
   
   for (float offset : offsets)
   {
-    auto lines = ofx::Clipper::getOffsets({ source }, offset, jointype, endtype);
+    auto lines = Clipper::getOffsets({ source }, offset, jointype, endtype);
     output.insert(output.end(), lines.begin(), lines.end());
   }
   

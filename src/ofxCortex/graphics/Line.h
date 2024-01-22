@@ -1,10 +1,16 @@
 #pragma once
 
-#include "ofxCortex/libs/ofxClipper/src/Clipper.h"
+//#ifdef OF_TARGET_OSX
+#include "ofxClipper.h"
+//#endif
+
+#ifdef TARGET_WIN32
+#include "ofxCortex/libs/ofxClipper/src/ofxClipper.h"
+#endif
+
 #include "ofGraphics.h"
 #include "ofMath.h"
 #include "ofxCortex/utils/Helpers.h"
-
 namespace ofxCortex { namespace core { namespace graphics {
 
 class Line {
