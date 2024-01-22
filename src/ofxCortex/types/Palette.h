@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ofColor.h"
+#include "ofxTweenzor.h"
 #include "ofxCortex/utils/Helpers.h"
 
 namespace ofxCortex { namespace core { namespace types {

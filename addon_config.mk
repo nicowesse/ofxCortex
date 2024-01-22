@@ -30,6 +30,7 @@ common:
 	# but if the addon or addon libraries need special search paths they can be
 	# specified here separated by spaces or one per line using +=
 	ADDON_INCLUDES = src libs
+	ADDON_INCLUDES += libs/ofxClipper/src
 
 	# any special flag that should be passed to the compiler when using this
 	# addon
@@ -66,4 +67,5 @@ osx:
 
 vs:
 	ADDON_INCLUDES = src libs
+	ADDON_INCLUDES += libs/ofxClipper/src
 	ADDON_DEPENDENCIES = ofxTweenzor
