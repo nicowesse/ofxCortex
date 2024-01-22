@@ -67,7 +67,7 @@ public:
   // Getters
   ofColor getColor(unsigned int index) { return colors[CLAMP(index, 0, colors.size() - 1)]; }
   ofColor getColor(float t, LookupMode mode = LookupMode::LINEAR) {
-    return paletteData.getColor(getLookupValue(ofClamp(t, std::numeric_limits<float>::epsilon(), 1.0 - std::numeric_limits<float>::epsilon()), mode) * paletteData.getWidth(), 0);
+    return paletteData.getColor(ofClamp(getLookupValue(t, mode), std::numeric_limits<float>::epsilon(), 1.0 - std::numeric_limits<float>::epsilon()) * paletteData.getWidth(), 0);
   };
   const std::vector<ofColor> & getColors() { return colors; }
   ofColor getRandomColor() { return utils::Array::randomInVector(colors); }
@@ -95,6 +95,8 @@ public:
     }
     ofPopStyle();
   }
+  
+  const ofTexture & getTexture() const { return paletteFBO.getTexture(); }
   
   
   // Serialization
@@ -200,8 +202,8 @@ protected:
     switch (mode) {
       case LookupMode::LINEAR: return t;
       case LookupMode::LINEAR_LOOP: return 2.0 * abs(t - floor(t + 0.5));
-      case LookupMode::COSINE: return cos(TWO_PI * 0.5 + PI) * 0.5 + 0.5;
-      case LookupMode::COSINE_LOOP: return cos(TWO_PI * 1.0 + PI) * 0.5 + 0.5;
+      case LookupMode::COSINE: return cos(TWO_PI * 0.5 * t + PI) * 0.5 + 0.5;
+      case LookupMode::COSINE_LOOP: return cos(TWO_PI * 1.0 * t + PI) * 0.5 + 0.5;
     }
   }
   
