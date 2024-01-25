@@ -25,4 +25,7 @@ static double floorToNearest(double value, double multiple)
 
 static unsigned long modulo(int a, int b) { return (b + (a % b)) % b; }
 
+template<typename T>
+static double normalizeIndex(size_t index, const std::vector<T> & v) { return (double) index / (v.size() - 1); }
+
 };

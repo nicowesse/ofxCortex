@@ -7,8 +7,6 @@ using namespace std::chrono;
 
 namespace ofxCortex { namespace core {
 
-static ofEventListeners listeners;
-
 namespace utils {
 
 class Parameters {

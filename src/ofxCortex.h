@@ -2,6 +2,10 @@
 
 #include "ofEvents.h"
 
+namespace ofxCortex { namespace core {
+  static ofEventListeners listeners;
+}}
+
 #include "ofxCortex/core/UUID.h"
 #include "ofxCortex/core/Serialization.h"
 

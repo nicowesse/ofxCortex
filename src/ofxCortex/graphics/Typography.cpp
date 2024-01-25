@@ -43,7 +43,7 @@ void Typography::typeOnPath(const ofTrueTypeFont & font, const std::string & tex
   }
 }
 
-void Typography::draw(const ofTrueTypeFont & font, const std::string & text, glm::vec2 pos, float fontSize, ofAlignHorz horizontalAlign, ofAlignVert verticalAlign)
+void Typography::draw(const ofTrueTypeFont & font, const std::string & text, const glm::vec2 & pos, float fontSize, ofAlignHorz horizontalAlign, ofAlignVert verticalAlign)
 {
   if (!font.isLoaded()) return;
   

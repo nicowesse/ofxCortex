@@ -49,7 +49,7 @@ public:
   };
   
   static void typeOnPath(const ofTrueTypeFont & font, const std::string & text, const ofPolyline & line, float fontSize, float offset = 0.0f, bool repeat = false, bool wrap = true);
-  static void draw(const ofTrueTypeFont & font, const std::string & text, glm::vec2 pos, float fontSize, ofAlignHorz horizontalAlign = OF_ALIGN_HORZ_LEFT, ofAlignVert verticalAlign = OF_ALIGN_VERT_TOP);
+  static void draw(const ofTrueTypeFont & font, const std::string & text, const glm::vec2 & pos, float fontSize, ofAlignHorz horizontalAlign = OF_ALIGN_HORZ_LEFT, ofAlignVert verticalAlign = OF_ALIGN_VERT_TOP);
   static void draw(const std::string & text, glm::vec2 pos, const Font & settings, ofAlignHorz horizontalAlign = OF_ALIGN_HORZ_LEFT, ofAlignVert verticalAlign = OF_ALIGN_VERT_TOP);
 protected:
 };

@@ -240,7 +240,7 @@ public:
       }
     }
     
-    friend ostream& operator<<(ostream& os, const BeatData& beat)
+    friend std::ostream& operator<<(std::ostream& os, const BeatData& beat)
     {
       os << "1/1 = " << beat.isBar << " 1/2 = " << beat.isHalf << " 1/4 = " << beat.isQuarter << " 1/8 = " << beat.is8th << " 1/16 = " << beat.is16th << " 1/32 = " << beat.is32th;
       return os;
