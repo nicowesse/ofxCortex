@@ -47,6 +47,7 @@ public:
   
   void operator=(const T& value) { this->setTarget(value); }
   operator T() const { return current; }
+  operator ofParameterGroup&() { return parameters; }
   
   void setTarget(const T & value) { this->target = value; }
   void setCurrent(const T & value) { this->current = value; }
@@ -61,14 +62,91 @@ protected:
   ofParameter<std::string> currentValue { "Value", "0.0" };
   ofParameter<float> smoothing { "Smoothing", 0.1, 0.0, 1.0 };
   
-  void update(ofEventArgs & e) { current = ofLerp(current, target, 1.0 - pow(this->smoothing.get(), ofGetLastFrameTime())); currentValue = ofToString(current); }
+  void update(ofEventArgs & e) {
+    if (ofIsFloatEqual(current, target)) return;
+    
+    current = ofLerp(current, target, 1.0 - pow(this->smoothing.get(), ofGetLastFrameTime()));
+    currentValue = ofToString(current);
+  }
 };
 
 template<>
 inline void Lerped<glm::vec3>::update(ofEventArgs & e)
 {
+  if (current == target) return;
+  
   float t = 1.0 - pow(this->smoothing.get(), ofGetLastFrameTime());
   current = glm::mix(current, target, t);
 }
+
+template<typename T = float>
+class InertialLerp {
+public:
+  InertialLerp(T value = T(), const std::string & name = "Lerped Value") : current(value), previousTarget(value), target(value), velocity(0)
+  {
+    ofAddListener(ofEvents().update, this, &InertialLerp::update);
+    
+    parameters.setName(name);
+    parameters.add(currentValue, stiffness, damping, anticipation);
+  }
+  
+  ~InertialLerp()
+  {
+    ofRemoveListener(ofEvents().update, this, &InertialLerp::update);
+  }
+  
+  void operator=(const T& value) { this->setTarget(value); }
+  operator T() const { return current; }
+  operator ofParameterGroup&() { return parameters; }
+  
+  void setTarget(const T & value) { this->target = value; }
+  void setCurrent(const T & value) { this->current = value; }
+  
+  InertialLerp<T> & setStiffness(float value) { this->stiffness = value; return *this; }
+  InertialLerp<T> & setDamping(float value) { this->damping = value; return *this; }
+  InertialLerp<T> & setAnticipation(float value) { this->anticipation = value; return *this; }
+  
+  
+  ofParameterGroup parameters;
+protected:
+  T target; // x
+  T previousTarget; // xp
+  
+  T current; // y
+  T velocity; // yd
+  
+  ofParameter<std::string> currentValue { "Value", "0.0" };
+  ofParameter<float> stiffness { "Stiffness", 4.0, 0.0, 10.0 }; // f
+  ofParameter<float> damping { "Damping", 0.25, 0.0, 1.0 }; // zeta
+  ofParameter<float> anticipation { "Anticipation", 0., -2.0, 2.0 }; // r
+  
+  bool isEqual() const { return current == target; }
+  
+  void update(ofEventArgs & e) {
+    if (isEqual()) return;
+    
+    const float & f = stiffness.get();
+    const float & z = damping.get();
+    const float & r = anticipation.get();
+    
+    float k1 = z / (PI * f);
+    float k2 = 1.0 / ((TWO_PI * f) * (TWO_PI * f));
+    float k3 = r * z / (TWO_PI * f);
+    
+    float delta = ofGetLastFrameTime();
+    T xd = (target - previousTarget) / delta;
+    previousTarget = target;
+    
+    float k2_stable = std::max(k2, 1.1f * (delta * delta / 4.0f + delta * k1 / 2.0f));
+    
+    current = current + delta * velocity;
+    velocity = velocity + delta * (target + k3 * xd - current - k1 * velocity) / k2_stable;
+    
+    currentValue = ofToString(current);
+  }
+};
+
+template<>
+bool InertialLerp<float>::isEqual() const { return ofIsFloatEqual(current, target); }
 
 };

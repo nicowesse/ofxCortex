@@ -6,6 +6,14 @@
 
 namespace ofxCortex { namespace core { namespace utils {
 
+#pragma mark - Music
+namespace Music {
+
+static float BPMtoPeriod(float BPM)     { return 60.0 / BPM; }
+static float PeriodToBPM(float period)  { return 60.0 / period; }
+
+}
+
 #pragma mark - ADSR
 class ADSR : public ofThread {
 public:

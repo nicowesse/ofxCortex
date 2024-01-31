@@ -572,13 +572,6 @@ unsigned int measure(Func&& func, Args&&... args) {
 }
 }
 
-namespace Music {
-
-static float BPMtoPeriod(float BPM)     { return 60.0 / BPM; }
-static float PeriodToBPM(float period)  { return 60.0 / period; }
-
-}
-
 namespace Vector {
 
 inline static glm::vec2 random2D(float radius = 1.0) { return glm::circularRand(MAX(radius, std::numeric_limits<float>::epsilon())); }

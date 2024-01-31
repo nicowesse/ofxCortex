@@ -48,6 +48,7 @@ public:
   }
   
   operator std::vector<ofColor>() const { return colors; }
+  operator const std::vector<ofColor>&() const { return colors; }
   
   // Adders
   void setColors(const std::vector<ofColor> & colors, float animationTime = 0.0f)
