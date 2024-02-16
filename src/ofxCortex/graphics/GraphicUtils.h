@@ -42,21 +42,23 @@ public:
   
   static void drawGrid(const ofRectangle & bounds, int columns, int rows, ofColor lineColor = ofColor(255), bool drawCenters = false)
   {
-    const float cellW = bounds.width / columns;
-    const float cellH = bounds.height / rows;
-    
+    drawGrid(bounds.position, bounds.width / columns, bounds.height / rows, columns, rows, lineColor, drawCenters);
+  }
+  
+  static void drawGrid(const glm::vec2 & position, float cellW, float cellH, int columns, int rows, ofColor lineColor = ofColor(255), bool drawCenters = false)
+  {
     ofPushStyle();
     ofSetColor(lineColor, 64);
     for (int row = 0; row <= rows; row++)
     {
-      float y = row * cellH + bounds.y;
-      ofDrawLine(bounds.getLeft(), y, bounds.getRight(), y);
+      float y = row * cellH + position.y;
+      ofDrawLine(position.x, y, position.x + cellW * columns, y);
       
       for (int col = 0; col <= columns; col++)
       {
-        float x = col * cellW + bounds.x;
+        float x = col * cellW + position.x;
         
-        if (row == 0) ofDrawLine(x, bounds.getTop(), x, bounds.getBottom());
+        if (row == 0) ofDrawLine(x, position.y, x, position.y + cellH * rows);
       }
     }
     
@@ -66,8 +68,8 @@ public:
     {
       for (int col = 0; col <= columns; col++)
       {
-        float x = col * cellW + bounds.x;
-        float y = row * cellH + bounds.y;
+        float x = col * cellW + position.x;
+        float y = row * cellH + position.y;
         
         ofDrawLine(x - offset, y, x + offset, y);
         ofDrawLine(x, y - offset, x, y + offset);

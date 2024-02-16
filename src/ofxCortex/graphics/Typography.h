@@ -111,16 +111,17 @@ public:
   
 #pragma mark - Type-on-Path
   struct TypeOnPathSettings : public FontSettings {
-    TypeOnPathSettings(float size, float offset = 0.0f, bool repeat = false, bool wrap = false, bool flip = false)
-    : FontSettings(size), offset(offset), repeat(repeat), wrap(wrap), flip(flip) {};
+    TypeOnPathSettings(float size, float offset = 0.0f, bool repeat = false, bool wrap = false, bool flipX = false, bool flipY = false)
+    : FontSettings(size), offset(offset), repeat(repeat), wrap(wrap), flipX(flipX), flipY(flipY) {};
     
     float offset;
     bool repeat { false };
     bool wrap { false };
-    bool flip { false };
+    bool flipX { false };
+    bool flipY { false };
   };
   
-  static void typeOnPath(const ofTrueTypeFont & font, const std::string & text, const ofPolyline & line, float fontSize, float offset = 0.0f, float spacing = 1.0f, bool repeat = false, bool wrap = true, bool flip = false);
+  static void typeOnPath(const ofTrueTypeFont & font, const std::string & text, const ofPolyline & line, float fontSize, float offset = 0.0f, float spacing = 1.0f, bool repeat = false, bool wrap = true, bool flipX = false, bool flipY = false);
   static void typeOnPath(const ofTrueTypeFont & font, const std::string & text, const ofPolyline & line, const TypeOnPathSettings & settings);
 protected:
 };

@@ -27,51 +27,61 @@ public:
     currentPaletteFBO.allocate(settings);
     nextPaletteFBO.allocate(settings);
     
-    cout << "Palette FBO = " << paletteFBO.getWidth() << endl;
+    isDirty = true;
     
     ofAddListener(ofEvents().update, this, &Palette::update);
-  };
+  }
+  
   ~Palette() {
     ofRemoveListener(ofEvents().update, this, &Palette::update);
   }
   
-  Palette(std::vector<ofColor> _colors) { this->setColors(_colors); }
-  Palette(const Palette &other)  { this->setColors(other.colors); }
-  
-  Palette& operator= (const Palette &other)
+  Palette(const Palette &other) : Palette() { this->setColors(other.colors); }
+  Palette& operator=(const Palette &other)
   {
-    if (this != &other)
-    {
-      this->setColors(other.colors);
-    }
+    if (this != &other) { this->setColors(other.colors); }
     return *this;
   }
   
+  Palette(const std::vector<ofColor> & _colors) : Palette() { this->setColors(_colors); }
+  Palette(std::initializer_list<ofColor> _colors) : Palette() { this->setColors(_colors); }
+  
   operator std::vector<ofColor>() const { return colors; }
   operator const std::vector<ofColor>&() const { return colors; }
+  ofColor & operator[](int i) { return colors[i]; }
+  size_t size() const { return colors.size(); }
   
   // Adders
   void setColors(const std::vector<ofColor> & colors, float animationTime = 0.0f)
   {
+    if (this->colors.size() == 0) currentPaletteMesh = ofxCortex::core::utils::Color::getGradientMesh(colors, paletteFBO.getWidth(), paletteFBO.getHeight());
+    
     this->colors = colors;
     
     nextPaletteMesh = ofxCortex::core::utils::Color::getGradientMesh(colors, paletteFBO.getWidth(), paletteFBO.getHeight());
     
+    isDirty = true;
+    
     if (ofIsFloatEqual(animationTime, 0.0f)) onTransitionEnd(&transition);
     else Tweenzor::addCompleteListener(Tweenzor::add(&transition, 0.0f, 1.0f, 0.0f, animationTime, EASE_IN_OUT_CUBIC), this, &Palette::onTransitionEnd);
-    
-    isDirty = true;
   }
   
+  void setFromCoolors(const std::string & URL) { this->setColors(utils::Color::fromCoolors(URL)); }
   static Palette fromCoolors(const std::string & URL) { return Palette(utils::Color::fromCoolors(URL)); }
   
   // Getters
-  ofColor getColor(unsigned int index) { return colors[CLAMP(index, 0, colors.size() - 1)]; }
+  const ofColor & getColor(unsigned int index) { return colors[CLAMP(index, 0, colors.size() - 1)]; }
   ofColor getColor(float t, LookupMode mode = LookupMode::LINEAR) {
     return paletteData.getColor(ofClamp(getLookupValue(t, mode), std::numeric_limits<float>::epsilon(), 1.0 - std::numeric_limits<float>::epsilon()) * paletteData.getWidth(), 0);
   };
   const std::vector<ofColor> & getColors() { return colors; }
-  ofColor getRandomColor() { return utils::Array::randomInVector(colors); }
+  ofColor getRandomColor(float alpha = 1.0f) {
+    ofColor c = utils::Array::randomInVector(colors);
+    if (ofIsFloatEqual(alpha, 1.0f)) return c;
+    
+    c.a *= alpha;
+    return c;
+  }
   
   
   // Rendering
@@ -92,7 +102,7 @@ public:
       float cH = h - inset * 2.0;
       
       ofSetColor(c);
-      ofDrawRectRounded(cX, cY, cW, cH, 6);
+      ofDrawRectRounded(cX, cY, cW, cH, 4);
     }
     ofPopStyle();
   }
@@ -142,36 +152,38 @@ protected:
   
   void update(ofEventArgs & e)
   {
-    if (isDirty)
+    if (this->isDirty) { this->updateFBOs(); }
+  }
+  
+  void updateFBOs()
+  {
+    currentPaletteFBO.begin();
     {
-      currentPaletteFBO.begin();
-      {
-        ofClear(0, 0, 0, 0);
-        currentPaletteMesh.draw();
-      }
-      currentPaletteFBO.end();
-      
-      nextPaletteFBO.begin();
-      {
-        ofClear(0, 0, 0, 0);
-        nextPaletteMesh.draw();
-      }
-      nextPaletteFBO.end();
-      
-      paletteFBO.begin();
-      {
-        ofClear(0, 0, 0, 0);
-        
-        ofSetColor(255, (1.0 - transition) * 255.0);
-        currentPaletteFBO.draw(0, 0);
-        
-        ofSetColor(255, transition * 255.0);
-        nextPaletteFBO.draw(0, 0);
-      }
-      paletteFBO.end();
-      
-      paletteFBO.readToPixels(paletteData);
+      ofClear(0, 0, 0, 0);
+      currentPaletteMesh.draw();
     }
+    currentPaletteFBO.end();
+    
+    nextPaletteFBO.begin();
+    {
+      ofClear(0, 0, 0, 0);
+      nextPaletteMesh.draw();
+    }
+    nextPaletteFBO.end();
+    
+    paletteFBO.begin();
+    {
+      ofClear(0, 0, 0, 0);
+      
+      ofSetColor(255, (1.0 - transition) * 255.0);
+      currentPaletteFBO.draw(0, 0);
+      
+      ofSetColor(255, transition * 255.0);
+      nextPaletteFBO.draw(0, 0);
+    }
+    paletteFBO.end();
+    
+    paletteFBO.readToPixels(paletteData);
   }
   
   ofFbo paletteFBO;
@@ -186,12 +198,10 @@ protected:
   float transition { 0.0f };
   void onTransitionEnd(float * value)
   {
-    currentPaletteFBO.begin();
-    nextPaletteFBO.draw(0, 0);
-    currentPaletteFBO.end();
+    updateFBOs();
     
-//    currentPaletteFBO = nextPaletteFBO;
     currentPaletteMesh = nextPaletteMesh;
+    
     transition = 0.0f;
     isDirty = false;
     

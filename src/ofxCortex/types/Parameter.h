@@ -13,14 +13,17 @@
 
 namespace ofxCortex::core::units {
 
-constexpr auto px = "px";
-constexpr auto pxs = "px/s";
+constexpr auto px = " px";
+constexpr auto pxs = " px/s";
 
-constexpr auto cm = "cm";
-constexpr auto mm = "mm";
+constexpr auto cm = " cm";
+constexpr auto mm = " mm";
 
-constexpr auto ms = "ms";
-constexpr auto seconds = "s";
+constexpr auto ms = " ms";
+constexpr auto seconds = " sec";
+
+constexpr auto degrees = "°";
+constexpr auto radians = " rad";
 
 }
 
@@ -71,6 +74,7 @@ class UnitParameter : public ofAbstractParameter {
 public:
   UnitParameter() : parameter(), unit("") {};
   UnitParameter(const ofParameter<ParameterType> & v) : parameter(v), unit("") {};
+  UnitParameter(const UnitParameter<ParameterType> & v) : parameter(v.parameter), unit(v.unit) {};
   UnitParameter(const ParameterType & v) : parameter(v), unit("") { };
   UnitParameter(const std::string& name, const ParameterType & v) : parameter(name, v), unit("") {};
   UnitParameter(const std::string& name, const ParameterType & v, const std::string & unit) : parameter(name, v), unit(unit) {};
@@ -84,6 +88,7 @@ public:
   
   ofParameter<ParameterType> & getParameter() { return parameter; }
   explicit operator ofParameter<ParameterType>() const { return parameter; }
+  explicit operator ofParameter<ParameterType>&() const { return parameter; }
   operator const ofParameter<ParameterType>&() const { return parameter; }
   
   virtual std::string getName() const override { return parameter.getName(); }
@@ -205,6 +210,7 @@ template<>
 class UnitParameter<void> : public ofAbstractParameter {
 public:
   UnitParameter() : parameter(), unit("") {};
+  UnitParameter(const std::string & name) : parameter(name), unit("") {};
   UnitParameter(const ofParameter<void> & v) : parameter(v), unit("") {};
   virtual ~UnitParameter() {}
   

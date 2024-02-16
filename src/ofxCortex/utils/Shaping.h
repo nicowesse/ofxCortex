@@ -37,6 +37,11 @@ public:
     return (x < shift) ? f(x, shift) : 1.0 - f(1.0 - x, 1.0 - shift);
   };
   
+  static float expStep( float x, float k, float n )
+  {
+      return exp(-k * pow(x, n));
+  }
+  
   static float parabola( float x, float k )
   {
       return pow( 4.0*x*(1.0-x), k );

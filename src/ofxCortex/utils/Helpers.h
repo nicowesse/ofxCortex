@@ -224,9 +224,47 @@ static void drawTexCoordRectangle(float x = 0.0f, float y = 0.0f, float w = 1.0f
   ofPopMatrix();
 }
 
-static void drawTexCoordRectangle(const ofRectangle & rect) {
+static void drawTexCoordRectangle(const ofRectangle & rect) 
+{
   drawTexCoordRectangle(rect.x, rect.y, rect.width, rect.height);
 }
+
+static float getNormalizedTime(float hours = ofGetHours(), float minutes = ofGetMinutes(), float seconds = ofGetSeconds())
+{
+  float hoursToSeconds = hours * 3600;
+  float minutesToSeconds = minutes * 60.0;
+  
+  return (hoursToSeconds + minutesToSeconds + seconds) / 86400.0;
+}
+
+
+
+#pragma mark - Map
+namespace Map {
+
+template<typename Map>
+std::vector<typename Map::key_type> keys(const Map& m) 
+{
+  std::vector<typename Map::key_type> keys;
+  for (const auto& pair : m) {
+    keys.push_back(pair.first);
+  }
+  return keys;
+}
+
+template<typename Map>
+std::vector<typename Map::value_type> values(const Map& m) 
+{
+  std::vector<typename Map::value_type> keys;
+  for (const auto& pair : m) {
+    keys.push_back(pair.second);
+  }
+  return keys;
+}
+
+}
+
+
 
 #pragma mark - Array
 namespace Array {
@@ -250,7 +288,8 @@ static T randomInVector(const std::vector<T> & v)
 ALIAS_TEMPLATE_FUNCTION(sample, randomInVector)
 
 template<typename T>
-std::vector<T> exclude(const std::vector<T>& input, const std::vector<T>& exclude) {
+std::vector<T> exclude(const std::vector<T>& input, const std::vector<T>& exclude) 
+{
   std::vector<T> result;
   std::copy_if(input.cbegin(), input.cend(), std::back_inserter(result), [&](const T& element) {
     return std::find(exclude.cbegin(), exclude.cend(), element) == exclude.cend();
@@ -259,7 +298,8 @@ std::vector<T> exclude(const std::vector<T>& input, const std::vector<T>& exclud
 }
 
 template<typename T>
-static void remove(std::vector<T>& source, const std::vector<T>& remove) {
+static void remove(std::vector<T>& source, const std::vector<T>& remove) 
+{
   source.erase(std::remove_if(source.begin(), source.end(), [&remove](const T& item) {
     return std::find(remove.cbegin(), remove.cend(), item) != remove.cend();
   }), source.end());
@@ -277,7 +317,8 @@ static T sampleExcept(const std::vector<T> & v, const T& except)
 }
 
 template <template <typename, typename> class Container, typename T, typename Allocator = std::allocator<T>>
-void subtractFromVector(Container<T, Allocator>& input, const Container<T, Allocator>& subtract) {
+void subtractFromVector(Container<T, Allocator>& input, const Container<T, Allocator>& subtract) 
+{
   input.erase(std::remove_if(input.begin(), input.end(), [&subtract](T element) { return std::find(subtract.begin(), subtract.end(), element) != subtract.end(); }), input.end());
 }
 
@@ -330,7 +371,8 @@ static std::vector<unsigned int> findIndices(const std::vector<T> & v, const std
 }
 
 template <typename T>
-static std::vector<T> randomSubset(const std::vector<T>& v, std::size_t size) {
+static std::vector<T> randomSubset(const std::vector<T>& v, std::size_t size) 
+{
   std::random_device rd;
   std::mt19937 gen(rd());
   std::vector<std::size_t> indices(v.size());
@@ -363,11 +405,21 @@ static std::vector<OutputType> transform(const std::vector<InputType> & v, Func 
   return output;
 }
 
-template<typename T, template <typename, typename...> class Container, typename... Args, typename Func, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
-static std::vector<T> filter(const Container<T, Args...> & v, Func func)
+ALIAS_TEMPLATE_FUNCTION(map, transform)
+
+//template<typename T, template <typename, typename...> class Container, typename... Args, typename Func, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
+//static std::vector<T> filter(const Container<T, Args...> & v, Func func)
+//{
+//  std::vector<T> output;
+//  std::copy_if(begin(v), end(v), std::back_inserter(output), func);
+//  return output;
+//}
+
+template <typename Container, typename Function>
+static Container filter(const Container& source, const Function & func)
 {
-  std::vector<T> output;
-  std::copy_if(begin(v), end(v), std::back_inserter(output), func);
+  Container output;
+  std::copy_if(source.begin(), source.end(), std::inserter(output, output.end()), func);
   return output;
 }
 
@@ -459,12 +511,12 @@ enum CoordinateEdges {
   WRAP, CLAMP, CRASH
 };
 
-static int coordinateToIndex(glm::ivec3 coord, glm::ivec3 size, CoordinateEdges edgeMode = CLAMP) {
+static unsigned int coordinateToIndex(glm::ivec3 coord, glm::ivec3 size, CoordinateEdges edgeMode = CLAMP) {
   if (edgeMode == WRAP) return modulo(coord.x, size.x) + modulo(coord.y, size.y) * size.x + modulo(coord.z, size.z) * size.x * size.y;
   else if (edgeMode == CLAMP) return CLAMP(coord.x, 0, size.x - 1) + CLAMP(coord.y, 0, size.y - 1) * size.x + CLAMP(coord.z, 0, size.z - 1) * size.x * size.y;
   else return coord.x + coord.y * size.x + coord.z * size.x * size.y;
 }
-static int coordinateToIndex(glm::ivec2 coord, glm::ivec2 size, CoordinateEdges edgeMode = CLAMP) {
+static unsigned int coordinateToIndex(glm::ivec2 coord, glm::ivec2 size, CoordinateEdges edgeMode = CLAMP) {
   if (edgeMode == WRAP) return modulo(coord.x, size.x) + modulo(coord.y, size.y) * size.x;
   else if (edgeMode == CLAMP) return CLAMP(coord.x, 0, size.x - 1) + CLAMP(coord.y, 0, size.y - 1) * size.x;
   else return coord.x + coord.y * size.x;
@@ -472,11 +524,7 @@ static int coordinateToIndex(glm::ivec2 coord, glm::ivec2 size, CoordinateEdges 
 
 static glm::ivec3 indexToCoordinate(int index, glm::ivec3 size)
 {
-  if (index < 0 || index >= size.x * size.y * size.z)
-  {
-    //    std::cout << "ofxCortex::core::utils::Array::indexToCoordinate(): Index out of bounds [0-" << (size.x * size.y * size.z) << "]. Clamping to range." << std::endl;
-    index = CLAMP(index, 0, size.x * size.y * size.z - 1);
-  }
+  if (index < 0 || index >= size.x * size.y * size.z) { index = CLAMP(index, 0, size.x * size.y * size.z - 1); }
   
   glm::ivec3 coord;
   coord.x = index % size.x;
@@ -488,11 +536,7 @@ static glm::ivec3 indexToCoordinate(int index, glm::ivec3 size)
 
 static glm::ivec2 indexToCoordinate(int index, glm::ivec2 size)
 {
-  if (index < 0 || index >= size.x * size.y)
-  {
-    //      ofLogWarning("ofxCortex::core::utils::Array::indexToCoordinate") << "Index out of bounds [0-" << size.x * size.y << "]. Clamping to the range.";
-    index = CLAMP(index, 0, size.x * size.y - 1);
-  }
+  if (index < 0 || index >= size.x * size.y) { index = CLAMP(index, 0, size.x * size.y - 1); }
   
   glm::ivec2 coord;
   coord.x = index % size.x;
@@ -500,7 +544,10 @@ static glm::ivec2 indexToCoordinate(int index, glm::ivec2 size)
   
   return coord;
 }
+
 }
+
+
 
 #pragma mark - Color
 namespace Color {
@@ -559,19 +606,50 @@ static ofMesh getGradientMesh(const std::vector<ofColor> & colors, float w = 1.0
   return mesh;
 }
 
+static ofMesh getGradientMeshVertical(const std::vector<ofColor> & colors, float w = 1.0, float h = 1.0)
+{
+  ofMesh mesh;
+  mesh.setMode(OF_PRIMITIVE_TRIANGLE_STRIP);
+  
+  int steps = h / 10.0;
+  
+  for (int i = 0; i < steps; i++)
+  {
+    float t = i / (float)(steps - 1);
+    
+    ofColor c = ofxCortex::core::utils::Shaping::interpolate(colors, t);
+    
+    float y = t * h;
+    mesh.addVertex(glm::vec3(0, y, 0));
+    mesh.addColor(c);
+    mesh.addVertex(glm::vec3(w, y, 0));
+    mesh.addColor(c);
+  }
+  
+  return mesh;
 }
 
+}
+
+
+
+#pragma mark - Performance
 namespace Performance {
+
 template<typename Func, typename... Args>
-unsigned int measure(Func&& func, Args&&... args) {
+unsigned int measure(Func&& func, Args&&... args) 
+{
   auto start = std::chrono::high_resolution_clock::now();
   std::forward<Func>(func)(std::forward<Args>(args)...);
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
   return static_cast<unsigned int>(duration.count());
 }
+
 }
 
+
+#pragma mark - Vector
 namespace Vector {
 
 inline static glm::vec2 random2D(float radius = 1.0) { return glm::circularRand(MAX(radius, std::numeric_limits<float>::epsilon())); }
@@ -597,7 +675,8 @@ inline static float toDegrees(const glm::vec2 & v) { return ofRadToDeg(toRadians
 inline static float toAngle(const glm::vec2 & v) { return toDegrees(v); }
 
 static float angleBetween(const glm::vec2 & a, const glm::vec2 & b) { return std::atan2(b.y, b.x) - std::atan2(a.y, a.x); }
-static float angleBetween(const glm::vec3 & a, const glm::vec3 & b) {
+static float angleBetween(const glm::vec3 & a, const glm::vec3 & b) 
+{
   const glm::vec3 u = glm::cross(a, b);
   
   return atan2(glm::length(u), glm::dot(a, b)) * ofSign(u.z || 1);
@@ -623,11 +702,34 @@ inline static void rotateAroundOrigin(glm::vec2 & point, const glm::bvec2 & orig
 inline static glm::vec2 getRotated(const glm::vec2 & v, float radians)
 {
   float a = radians;
-  return glm::vec2(v.x*cos(a) - v.y*sin(a), v.x*sin(a) + v.y*cos(a));
+  return glm::vec2(v.x * cos(a) - v.y * sin(a), v.x * sin(a) + v.y * cos(a));
 }
 
 template<typename T> inline static void limit(T & v, float max) { v = glm::min(v, glm::normalize(v) * max); }
 template<typename T> inline static T getLimited(const T & v, float max) { return glm::min(v, glm::normalize(v) * max); }
+
+}
+
+
+
+#pragma mark - Files
+namespace Files {
+
+template<typename F>
+void traverse(const std::string & path, const F& func)
+{
+  ofDirectory dir(path);
+  const auto & files = dir.getFiles();
+  
+  for (const ofFile & file : files)
+  {
+    if (file.isDirectory()) {
+      func(file);
+      traverse(file.path(), func);
+    }
+    else if (file.isFile()) func(file);
+  }
+}
 
 }
 

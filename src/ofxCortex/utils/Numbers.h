@@ -120,10 +120,10 @@ protected:
   ofParameter<float> damping { "Damping", 0.25, 0.0, 1.0 }; // zeta
   ofParameter<float> anticipation { "Anticipation", 0., -2.0, 2.0 }; // r
   
-  bool isEqual() const { return current == target; }
+//  bool isEqual() const { return current == target; }
   
   void update(ofEventArgs & e) {
-    if (isEqual()) return;
+//    if (isEqual()) return;
     
     const float & f = stiffness.get();
     const float & z = damping.get();
@@ -146,7 +146,7 @@ protected:
   }
 };
 
-template<>
-bool InertialLerp<float>::isEqual() const { return ofIsFloatEqual(current, target); }
+//template<>
+//bool InertialLerp<float>::isEqual() const { return ofIsFloatEqual(current, target); }
 
 };

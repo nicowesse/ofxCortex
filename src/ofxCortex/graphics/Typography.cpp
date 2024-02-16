@@ -91,15 +91,16 @@ void Typography::typeOnPath(const ofTrueTypeFont & font, const std::string & tex
 //    letterIndex++;
 //  }
   
-  typeOnPath(font, text, line, settings.fontSize, settings.offset, settings.spacing, settings.repeat, settings.wrap, settings.flip);
+  typeOnPath(font, text, line, settings.fontSize, settings.offset, settings.spacing, settings.repeat, settings.wrap, settings.flipX, settings.flipY);
 }
 
-void Typography::typeOnPath(const ofTrueTypeFont & font, const std::string & text, const ofPolyline & line, float fontSize, float offset, float spacing, bool repeat, bool wrap, bool flip)
+void Typography::typeOnPath(const ofTrueTypeFont & font, const std::string & text, const ofPolyline & line, float fontSize, float offset, float spacing, bool repeat, bool wrap, bool flipX, bool flipY)
 {
   float scale = fontSize / font.getSize();
   auto xBB = font.getStringBoundingBox("X", 0, 0);
   
-  int direction = (flip) ? -1 : 1;
+  int directionX = (flipX) ? -1 : 1;
+  int directionY = (flipY) ? -1 : 1;
   
   offset = ofWrap(offset, 0, line.getPerimeter());
   
@@ -126,12 +127,12 @@ void Typography::typeOnPath(const ofTrueTypeFont & font, const std::string & tex
     ofPushMatrix();
     ofTranslate(pos);
     ofRotateRad(rot);
-    ofScale(scale * direction);
+    ofScale(scale * directionX, scale * directionY);
     
     font.drawStringAsShapes(letter, -xBB.width * 0.5, xBB.height * 0.5);
     ofPopMatrix();
     
-    lineX += scaledBB.width * (1.0 + spacing) * direction;
+    lineX += scaledBB.width * (1.0 + spacing) * directionX;
     letterIndex++;
   }
 }
