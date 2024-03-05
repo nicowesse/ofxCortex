@@ -3,6 +3,7 @@
 #include "ofThread.h"
 #include "ofTimer.h"
 #include "ofParameterGroup.h"
+#include "ofxCortex/utils/Helpers.h"
 
 namespace ofxCortex { namespace core { namespace utils {
 
@@ -138,6 +139,7 @@ public:
   }
   
   ofParameterGroup parameters;
+  operator ofParameterGroup&() { return parameters; }
   
 protected:
   ofTimer timer;

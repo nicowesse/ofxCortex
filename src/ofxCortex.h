@@ -9,7 +9,9 @@ namespace ofxCortex { namespace core {
 #include "ofxCortex/core/UUID.h"
 #include "ofxCortex/core/Serialization.h"
 
+#include "ofxCortex/utils/Containers.h"
 #include "ofxCortex/utils/Shaping.h"
+#include "ofxCortex/utils/Timing.h"
 #include "ofxCortex/utils/Helpers.h"
 #include "ofxCortex/utils/Path.h"
 #include "ofxCortex/utils/Parameters.h"

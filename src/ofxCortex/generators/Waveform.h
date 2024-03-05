@@ -20,6 +20,56 @@ public:
     void BPMtoPeriod(float BPM) { this->period = 60.0 / BPM; }
   };
   
+  static void draw(const Settings & settings, const ofRectangle & viewport)
+  {
+    float inset = 16;
+    int steps = viewport.width / 2.0f;
+    
+    ofPushStyle();
+    
+    ofFill();
+    ofSetColor(12);
+    ofDrawRectRounded(viewport, 6);
+
+    ofNoFill();
+    ofSetColor(255, 32);
+    ofDrawRectRounded(viewport, 6);
+    
+    ofSetColor(64);
+    ofDrawLine(viewport.getLeft() + inset, viewport.getCenter().y, viewport.getRight() - inset, viewport.getCenter().y);
+    ofDrawLine(viewport.getLeft() + inset, viewport.getCenter().y, viewport.getLeft() + inset, viewport.getCenter().y);
+    
+    ofFill();
+    ofDrawCircle(viewport.getLeft() + inset, viewport.getCenter().y, 2);
+    ofDrawCircle(viewport.getRight() - inset, viewport.getCenter().y, 2);
+    
+    ofNoFill();
+    ofSetColor(255);
+    ofBeginShape();
+    for (int i = 0; i <= steps; i++)
+    {
+      float t = (float) i / steps;
+      float x = ofMap(t, 0, 1, viewport.getLeft() + inset, viewport.getRight() - inset, true);
+      float y = ofMap(wave(t, settings), -1, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true);
+      
+      ofVertex(x, y);
+    }
+    ofEndShape();
+    
+    ofFill();
+    ofSetColor(128);
+    ofDrawCircle(viewport.getLeft() + inset, ofMap(wave(0.0, settings), -1, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true), 2);
+    ofDrawCircle(viewport.getRight() - inset, ofMap(wave(1.0, settings), -1, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true), 2);
+    
+    ofDrawBitmapString(ofxCortex::core::utils::String::toTitleCase(typeToString(settings.type)), viewport.getLeft() + inset, viewport.getTop() + inset + 11 + 4);
+    
+    ofSetColor(255, 64);
+    ofDrawBitmapString("0", viewport.getLeft() + inset, viewport.getCenter().y - 4);
+    ofDrawBitmapString("1", viewport.getRight() - inset - 8, viewport.getCenter().y - 4);
+    
+    ofPopStyle();
+  }
+  
 public:
   
   Waveform() {
@@ -153,7 +203,16 @@ protected:
     return TWO_PI * (x - fmod(shift, period)) * p2f(period);
   }
   
-  Type stringToType(const std::string & type) {
+  static std::string typeToString(const Type & type) {
+    if (type == Type::SINE) { return "sine"; }
+    if (type == Type::TRIANGLE) { return "triangle"; }
+    if (type == Type::SQUARE) { return "square"; }
+    if (type == Type::SAWTOOTH) { return "sawtooth"; }
+    
+    return "sine";
+  }
+  
+  static Type stringToType(const std::string & type) {
     if (type == "sine") { return Type::SINE; }
     if (type == "triangle") { return Type::TRIANGLE; }
     if (type == "square") { return Type::SQUARE; }

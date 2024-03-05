@@ -45,6 +45,7 @@ public:
   
   Palette(const std::vector<ofColor> & _colors) : Palette() { this->setColors(_colors); }
   Palette(std::initializer_list<ofColor> _colors) : Palette() { this->setColors(_colors); }
+  Palette(const std::string & string) : Palette() { this->setFromCoolors(string); }
   
   operator std::vector<ofColor>() const { return colors; }
   operator const std::vector<ofColor>&() const { return colors; }
