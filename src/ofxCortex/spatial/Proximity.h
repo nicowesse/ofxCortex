@@ -2,7 +2,7 @@
 
 #include <vector>
 #include "ofVectorMath.h"
-#include "ofxCortex/graphics/GraphicUtils.h"
+#include "ofxCortex/utils/GraphicUtils.h"
 
 namespace ofxCortex { namespace core { namespace utils {
 
@@ -170,7 +170,7 @@ public:
       ofRectangle bounds = ofRectangle(proximity._position, proximity._position + proximity._size);
       ofPushMatrix();
       {
-        ofxCortex::core::graphics::Utils::drawGrid(bounds, proximity._binCount.x, proximity._binCount.y);
+        ofxCortex::core::utils::Debug::drawGrid(bounds, proximity._binCount.x, proximity._binCount.y);
       }
       ofPopMatrix();
     }

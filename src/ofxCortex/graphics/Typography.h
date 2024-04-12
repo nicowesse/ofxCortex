@@ -2,7 +2,7 @@
 
 #include "ofMain.h"
 #include "ofTrueTypeFont.h"
-#include "ofxCortex/utils/Helpers.h"
+#include "ofxCortex/utils/VectorUtils.h"
 
 namespace ofxCortex { namespace core { namespace graphics {
 

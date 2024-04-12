@@ -268,7 +268,7 @@ void Noise::writeNoiseToFbo(ofFbo &fbo, Noise::Settings settings)
     
     ofSetColor(255);
     Noise::begin(glm::vec2(w, h), settings, false);
-    ofxCortex::core::utils::drawTexCoordRectangle(0, 0, w, h);
+    ofxCortex::core::utils::Graphics::drawTexCoordRectangle(0, 0, w, h);
     Noise::end(settings);
   }
   fbo.end();
@@ -389,7 +389,7 @@ double PerlinNoise::getNoise(const glm::vec3 & sample, PerlinNoise::Settings set
   
   for (int i = 0; i < settings.octaves; i++)
   {
-    glm::vec3 lookup = (sample + settings.offset + (float) settings.seed) / settings.scale * frequency;
+    glm::vec3 lookup = (sample + (float) settings.seed) / settings.scale * frequency;
     
     double noiseValue = ofNoise(lookup);
     noiseHeight += noiseValue * amplitude;
@@ -422,13 +422,13 @@ double PerlinNoise::getNoise(const glm::vec3 & sample, float scale, float contra
   return getNoise(sample, settings);
 }
 
-void PerlinNoise::begin(glm::vec2 resolution, PerlinNoise::Settings settings)
+void PerlinNoise::begin(const glm::vec2 & resolution, const glm::vec3 & offset, const PerlinNoise::Settings & settings)
 {
   const ofShader & shader = _getPerlinShader();
   
   shader.begin();
   shader.setUniform2f("u_resolution", resolution);
-  shader.setUniform3f("u_offset", settings.offset);
+  shader.setUniform3f("u_offset", offset);
   shader.setUniform1f("u_seed", settings.seed);
   shader.setUniform3f("u_scale", settings.scale);
   shader.setUniform1f("u_contrast", settings.contrast);
@@ -443,7 +443,7 @@ void PerlinNoise::end()
   _getPerlinShader().end();
 }
 
-void PerlinNoise::writeToFbo(ofFbo &fbo, PerlinNoise::Settings settings)
+void PerlinNoise::writeToFbo(ofFbo &fbo, const glm::vec3 & offset, const PerlinNoise::Settings & settings)
 {
   if (!fbo.isAllocated())
   {
@@ -464,18 +464,17 @@ void PerlinNoise::writeToFbo(ofFbo &fbo, PerlinNoise::Settings settings)
   {
     ofClear(0, 0, 0, 0);
     
-    PerlinNoise::begin(glm::vec2(w, h), settings);
-    ofxCortex::core::utils::drawTexCoordRectangle(0, 0, w, h);
+    PerlinNoise::begin(glm::vec2(w, h), offset, settings);
+    ofxCortex::core::utils::Graphics::drawTexCoordRectangle(0, 0, w, h);
     PerlinNoise::end();
   }
   fbo.end();
 }
 
-void PerlinNoise::writeToFbo(ofFbo &fbo, glm::vec3 offset, glm::vec3 scale, float contrast, float contrastBias, float details, float roughness, int octaves, int seed)
+void PerlinNoise::writeToFbo(ofFbo &fbo, const glm::vec3 & offset, const glm::vec3 & scale, float contrast, float contrastBias, float details, float roughness, int octaves, int seed)
 {
   PerlinNoise::Settings settings;
   settings.seed = seed;
-  settings.offset = offset;
   settings.scale = scale;
   settings.contrast = contrast;
   settings.contrastBias = contrastBias;
@@ -483,7 +482,7 @@ void PerlinNoise::writeToFbo(ofFbo &fbo, glm::vec3 offset, glm::vec3 scale, floa
   settings.roughness = roughness;
   settings.octaves = 1;
   
-  PerlinNoise::writeToFbo(fbo, settings);
+  PerlinNoise::writeToFbo(fbo, offset, settings);
 }
 
 static const string PARAMETER_GROUP_NAME = "Perlin Noise Settings";

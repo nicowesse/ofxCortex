@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ofGraphics.h"
 #include "of3dGraphics.h"
 
 namespace ofxCortex { namespace core { namespace types {

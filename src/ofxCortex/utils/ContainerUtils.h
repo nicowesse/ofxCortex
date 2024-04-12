@@ -1,10 +1,12 @@
 #pragma once
 
-#include "ofxCortex/utils/Numbers.h"
+#include <functional>
+#include <algorithm>
+#include <type_traits>
+
+#include "ofxCortex/utils/NumberUtils.h"
 
 namespace ofxCortex { namespace core { namespace utils {
-
-namespace Array {
 
 #define ALIAS_TEMPLATE_FUNCTION(highLevelF, lowLevelF) \
 template<typename... Args> \
@@ -12,6 +14,8 @@ inline auto highLevelF(Args&&... args) -> decltype(lowLevelF(std::forward<Args>(
 { \
 return lowLevelF(std::forward<Args>(args)...); \
 }
+
+namespace Array {
 
 template<typename Container, class T = typename Container::value_type>
 static T& atWrapped(Container & v, int index)
@@ -30,6 +34,23 @@ static T randomInVector(const Container & v)
 }
 
 ALIAS_TEMPLATE_FUNCTION(sample, randomInVector)
+
+template<typename T>
+T randomWeighted(const std::unordered_map<T, float>& weightedMap) 
+{
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  
+  std::vector<T> elements;
+  std::vector<float> probabilities;
+  for (const auto& pair : weightedMap) {
+    elements.push_back(pair.first);
+    probabilities.push_back(pair.second);
+  }
+  
+  std::discrete_distribution<> distribution(probabilities.begin(), probabilities.end());
+  return elements[distribution(gen)];
+}
 
 template<typename Container, class T = typename Container::value_type>
 Container exclude(const Container& input, const Container& exclude)
@@ -71,7 +92,14 @@ static std::vector<T> constructVector(int n, std::function<T(int)> func = [](int
 {
   std::vector<T> output(n);
   for (int i = 0; i < n; i++) output[i] = func(i);
-  //  std::generate(output.begin(), output.end(), func);
+  return output;
+}
+
+template<typename T>
+static std::vector<T> constructVector(int n, std::function<T(int, float)> func = [](int index, float t) { return T(); })
+{
+  std::vector<T> output(n);
+  for (int i = 0; i < n; i++) output[i] = func(i, (float) i / (n - 1.0f));
   return output;
 }
 
@@ -134,9 +162,9 @@ ALIAS_TEMPLATE_FUNCTION(sampleN, randomSubset)
 
 template<typename T>
 std::vector<size_t> randomIndices(const std::vector<T>& inputVector, size_t n = -1) {
-  if (n == 0) return std::vector<size_t>();
-  if (n == -1) n = inputVector.size() - 1;
-  n = std::min(n, inputVector.size() - 1); // Clamp n to the size of the input vector
+  if (n == 0 || inputVector.size() == 0) return std::vector<size_t>();
+  else if (n == -1) n = inputVector.size();
+  else n = std::min(n, inputVector.size()); // Clamp n to the size of the input vector
   
   std::vector<size_t> indices(inputVector.size());
   std::iota(indices.begin(), indices.end(), 0);
@@ -343,6 +371,5 @@ std::vector<Value> values(const Map& m)
 }
 
 }
-
 
 }}}

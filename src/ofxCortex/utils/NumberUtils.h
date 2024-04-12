@@ -1,6 +1,9 @@
 #pragma once
 
-namespace ofxCortex::core::utils {
+#include "ofAppRunner.h"
+#include "ofParameter.h"
+
+namespace ofxCortex { namespace core { namespace utils {
 
 static float roundToNearest(float value, float multiple)
 {
@@ -79,7 +82,9 @@ inline void Lerped<glm::vec3>::update(ofEventArgs & e)
   current = glm::mix(current, target, t);
 }
 
-template<typename T = float>
+
+
+template<typename T>
 class InertialLerp {
 public:
   InertialLerp(T value = T(), const std::string & name = "Lerped Value") : current(value), previousTarget(value), target(value), velocity(0)
@@ -120,10 +125,10 @@ protected:
   ofParameter<float> damping { "Damping", 0.25, 0.0, 1.0 }; // zeta
   ofParameter<float> anticipation { "Anticipation", 0., -2.0, 2.0 }; // r
   
-//  bool isEqual() const { return current == target; }
+  bool isEqual() const { return current == target; }
   
   void update(ofEventArgs & e) {
-//    if (isEqual()) return;
+    if (isEqual()) return;
     
     const float & f = stiffness.get();
     const float & z = damping.get();
@@ -146,7 +151,6 @@ protected:
   }
 };
 
-//template<>
-//bool InertialLerp<float>::isEqual() const { return ofIsFloatEqual(current, target); }
+//template<> bool InertialLerp<float>::isEqual() const { return ofIsFloatEqual(current, target); }
 
-};
+}}}
