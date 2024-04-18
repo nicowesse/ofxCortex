@@ -236,9 +236,9 @@ typename OutputType,
 typename Container,
 typename Func
 >
-static OutputType accumulate(const Container& container, Func func = Func())
+static OutputType accumulate(const Container& container, Func func = Func(), OutputType initial = OutputType())
 {
-  return std::accumulate(container.begin(), container.end(), OutputType(), func);
+  return std::accumulate(container.begin(), container.end(), initial, func);
 }
 
 template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>

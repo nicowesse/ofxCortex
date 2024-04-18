@@ -99,7 +99,7 @@ public:
   }
   
 protected:
-  ofParameter<float> k_p { "K", 0.5, 0.0, 1.0 };
+  ofParameter<float> k_p { "K", 0.5, 0.0, 8.0 };
   
 };
 

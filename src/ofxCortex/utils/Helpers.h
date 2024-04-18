@@ -95,21 +95,12 @@ static ofColor hexToColor(const std::string & hex)
 }
 
 static std::string colorToHex(const ofColor& color) {
-    // Get the individual components of the color
-    int r = color.r;
-    int g = color.g;
-    int b = color.b;
-
-    // Convert each component to its hexadecimal representation
-    std::stringstream ss;
-    ss << "#" << std::hex << std::setw(2) << std::setfill('0') << r
-       << std::hex << std::setw(2) << std::setfill('0') << g
-       << std::hex << std::setw(2) << std::setfill('0') << b;
+  std::stringstream hexColor;
+  hexColor << "#" << std::hex << std::setw(2) << std::setfill('0') << std::uppercase << (int)color.r
+           << std::setw(2) << std::setfill('0') << std::uppercase <<  (int)color.g
+           << std::setw(2) << std::setfill('0') << std::uppercase <<  (int)color.b;
   
-  std::cout << "colorToHex = " << ss.str() << std::endl;
-
-    // Return the concatenated hexadecimal string
-    return ss.str();
+    return hexColor.str();
 }
 
 static std::vector<ofColor> fromString(const std::string & colors)
