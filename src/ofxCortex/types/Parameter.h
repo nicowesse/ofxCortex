@@ -16,11 +16,12 @@ namespace ofxCortex::core::units {
 constexpr auto px = " px";
 constexpr auto pxs = " px/s";
 
+constexpr auto m = " m";
 constexpr auto cm = " cm";
 constexpr auto mm = " mm";
 
-constexpr auto ms = " ms";
 constexpr auto seconds = " sec";
+constexpr auto ms = " ms";
 
 constexpr auto degrees = "°";
 constexpr auto radians = " rad";
