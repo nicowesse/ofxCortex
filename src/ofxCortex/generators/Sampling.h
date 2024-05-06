@@ -19,12 +19,12 @@ public:
   
   std::vector<glm::vec2> sample(float radius, int numSamplesBeforeRejection = 30)
   {
-    return PoissonDisc::sample(radius, this->bounds);
+    return PoissonDisc::sample(radius, this->bounds, numSamplesBeforeRejection);
   }
   
-  static std::vector<glm::vec2> sample(float radius, const ofRectangle & bounds)
+  static std::vector<glm::vec2> sample(float radius, const ofRectangle & bounds, int numSamplesBeforeRejection = 30)
   {
-    return sampleFromDensityFunction(radius, radius, bounds, [](const glm::vec2 &) { return 1.0f; });
+    return PoissonDisc::sampleFromDensityFunction(radius, radius, bounds, [](const glm::vec2 &) { return 1.0f; }, numSamplesBeforeRejection);
   }
   
   static std::vector<glm::vec2> sampleFromDensityFunction(float minRadius, float maxRadius, const ofRectangle & bounds, const std::function<float(const glm::vec2&)> & radiusFunc, int numSamplesBeforeRejection = 16)
