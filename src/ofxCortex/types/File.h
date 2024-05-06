@@ -10,17 +10,12 @@ public:
   std::string path;
   
   File() {};
-  
   File (const std::string & path ) : path(path) {}
-  
   File(const File &other) : path(other.path) {}
   
   File& operator= (const File &other)
   {
-    if (this != &other)
-    {
-      this->path = other.path;
-    }
+    if (this != &other) { this->path = other.path; }
     return *this;
   }
   
@@ -33,7 +28,6 @@ public:
   friend std::istream& operator>> (std::istream &is, File &file)
   {
     is >> file.path;
-    
     return is;
   }
   

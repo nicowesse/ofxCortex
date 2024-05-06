@@ -5,7 +5,9 @@
 #include "ofGraphics.h"
 #include "ofMath.h"
 #include "ofPolyline.h"
-#include "ofxCortex/utils/Helpers.h"
+
+#include "ofxCortex/utils/VectorUtils.h"
+#include "ofxCortex/utils/NumberUtils.h"
 
 namespace ofxCortex { namespace core { namespace graphics {
 

@@ -4,6 +4,7 @@
 #include "ofTimer.h"
 #include "ofParameterGroup.h"
 #include "ofxCortex/utils/Helpers.h"
+#include "ofxCortex/types/BeatDivision.h"
 
 namespace ofxCortex { namespace core { namespace utils {
 
@@ -219,6 +220,7 @@ protected:
 
 
 #pragma mark - Beat
+
 class Beat : public ofThread {
 public:
   enum BeatType : int {
@@ -263,12 +265,16 @@ public:
     startThread();
     
     parameters.setName("Beat");
+    parameters.add(resetBPM);
+    resetBPM.addListener(this, &Beat::reset);
+    
     parameters.add(BPM.set("BPM", 120, 60, 280));
     BPM.addListener(this, &Beat::setBPMInternal);
   }
   
   ~Beat() {
     BPM.removeListener(this, &Beat::setBPMInternal);
+    resetBPM.removeListener(this, &Beat::reset);
     
     if (isThreadRunning()){
       waitForThread(true, 5000);
@@ -281,7 +287,7 @@ public:
     beat = 0;
   }
   
-  inline void setBPM(double bpm)
+  inline void setBPM(float bpm)
   {
     this->BPM.setWithoutEventNotifications(bpm);
     timer.setPeriodicEvent(BPMtoNano(this->BPM * 32 / 4.0));
@@ -290,22 +296,23 @@ public:
   
   inline double getBPM() const { return BPM; }
   
-  inline BeatData getBeatData()
+  inline BeatData getBeatData() const
   {
     BeatData data;
     
-    lock();
-    {
-      data.isBar = beat % 32 == 0;
-      data.isHalf = beat % 16 == 0;
-      data.isQuarter = beat % 8 == 0;
-      data.is8th = beat % 4 == 0;
-      data.is16th = beat % 2 == 0;
-      data.is32th = beat % 1 == 0;
-    }
-    unlock();
+    data.isBar = beat % 32 == 0;
+    data.isHalf = beat % 16 == 0;
+    data.isQuarter = beat % 8 == 0;
+    data.is8th = beat % 4 == 0;
+    data.is16th = beat % 2 == 0;
+    data.is32th = beat % 1 == 0;
     
     return data;
+  }
+  
+  float getBeatLength(int division) const
+  {
+    return ((60.0 / getBPM()) * 4.0) / pow(2, division % 5);
   }
   
   inline static int size() { return 5; }
@@ -317,6 +324,8 @@ public:
 protected:
   ofTimer timer;
   unsigned long beat { 0 };
+  
+  ofParameter<void> resetBPM { "Reset BPM" };
   
   ofParameter<int> BPM { "BPM", 120, 60, 200 };
   void setBPMInternal(int & param) { this->setBPM(param); }
@@ -337,14 +346,7 @@ protected:
       }
       unlock();
       
-      BeatData event;
-      event.isBar = beat % 32 == 0;
-      event.isHalf = beat % 16 == 0;
-      event.isQuarter = beat % 8 == 0;
-      event.is8th = beat % 4 == 0;
-      event.is16th = beat % 2 == 0;
-      event.is32th = beat % 1 == 0;
-      
+      BeatData event = getBeatData();
       onBeatE.notify(this, event);
     }
   }

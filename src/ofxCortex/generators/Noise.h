@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ofMain.h"
-#include "ofxCortex/utils/Shaping.h"
-#include "ofxCortex/utils/Helpers.h"
+#include "ofxCortex/utils/ShapingUtils.h"
+#include "ofxCortex/utils/GraphicUtils.h"
 
 namespace ofxCortex { namespace core { namespace generators {
 
@@ -70,7 +70,6 @@ class PerlinNoise {
 public:
   struct Settings {
     glm::vec3 scale { 1.0f };
-    glm::vec3 offset { 0.0f };
     
     float details { 0.5f };
     float roughness { 1.5f };
@@ -84,26 +83,42 @@ public:
     void print();
   };
   
-protected:
-  PerlinNoise() {};
+  PerlinNoise() {
+    this->parameters = getParameters();
+    this->settingsChanged = parameters.parameterChangedE().newListener([this](const ofAbstractParameter & param) {
+      settings = settingsFromParameters(parameters);
+    });
+  };
   ~PerlinNoise() { _getPerlinShader().unload(); }
+  
+  ofParameterGroup parameters;
+  operator ofParameterGroup&() { return parameters; }
+  
+protected:
   static ofShader & _getPerlinShader();
+  ofEventListener settingsChanged;
+  Settings settings;
   
 public:
+  double sample(const glm::vec3 & sample) const { return getNoise(sample, this->settings); }
+  double sample(const glm::vec3 & sample, float scale, float contrast = 1.0f, float contrastBias = 0.5f, float details = 0.5f, float roughness = 1.5f, int octaves = 3, int seed = 80052) const { return getNoise(sample, scale, contrast, contrastBias, details, roughness, octaves, seed); }
+  
   static double getNoise(const glm::vec3 & sample, PerlinNoise::Settings settings);
-  static double getNoise(const glm::vec3 & sample, const ofParameterGroup &parameters);
+  static double getNoise(const glm::vec3 & sample, const ofParameterGroup & parameters);
   static double getNoise(const glm::vec3 & sample, float scale, float contrast = 1.0f, float contrastBias = 0.5f, float details = 0.5f, float roughness = 1.5f, int octaves = 3, int seed = 80052);
   
 #pragma mark - Noise - Pixel/Image Methods
-  static void begin(glm::vec2 resolution, PerlinNoise::Settings settings);
+  static void begin(const glm::vec2 & resolution, const glm::vec3 & offset, const PerlinNoise::Settings & settings);
   static void end();
   
-  static void writeToFbo(ofFbo &fbo, PerlinNoise::Settings settings);
-  static void writeToFbo(ofFbo &fbo, glm::vec3 offset, glm::vec3 scale, float contrast = 1.0f, float contrastBias = 0.5f, float details = 0.5f, float roughness = 1.5f, int octaves = 3, int seed = 80057);
+  static void writeToFbo(ofFbo &fbo, const glm::vec3 & offset, const PerlinNoise::Settings & settings);
+  static void writeToFbo(ofFbo &fbo, const glm::vec3 & offset, const glm::vec3 & scale, float contrast = 1.0f, float contrastBias = 0.5f, float details = 0.5f, float roughness = 1.5f, int octaves = 3, int seed = 80057);
   
 #pragma mark - Noise - Settings Helper Methods
   
-  static void settingsFromParameters(PerlinNoise::Settings &settings, const ofParameterGroup &parameters);
+  const PerlinNoise::Settings & getSettings() const { return settings; }
+  
+  static void settingsFromParameters(PerlinNoise::Settings & settings, const ofParameterGroup &parameters);
   static PerlinNoise::Settings settingsFromParameters(const ofParameterGroup &parameters);
   
   static ofParameterGroup addParameters(ofParameterGroup &parameters);

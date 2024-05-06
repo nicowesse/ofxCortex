@@ -3,8 +3,11 @@
 #include "ofColor.h"
 #include "ofxTweenzor.h"
 #include "ofxCortex/utils/Helpers.h"
+#include "ofxCortex/utils/GraphicUtils.h"
 
 namespace ofxCortex { namespace core { namespace types {
+
+#define STRINGIFY(x) #x
 
 class Palette
 {
@@ -55,11 +58,11 @@ public:
   // Adders
   void setColors(const std::vector<ofColor> & colors, float animationTime = 0.0f)
   {
-    if (this->colors.size() == 0) currentPaletteMesh = ofxCortex::core::utils::Color::getGradientMesh(colors, paletteFBO.getWidth(), paletteFBO.getHeight());
+    if (this->colors.size() == 0) currentPaletteMesh = ofxCortex::core::utils::Graphics::getGradientMesh(colors, paletteFBO.getWidth(), paletteFBO.getHeight());
     
     this->colors = colors;
     
-    nextPaletteMesh = ofxCortex::core::utils::Color::getGradientMesh(colors, paletteFBO.getWidth(), paletteFBO.getHeight());
+    nextPaletteMesh = ofxCortex::core::utils::Graphics::getGradientMesh(colors, paletteFBO.getWidth(), paletteFBO.getHeight());
     
     isDirty = true;
     
@@ -83,6 +86,11 @@ public:
     c.a *= alpha;
     return c;
   }
+  
+  static Palette blackToWhite() { return Palette({ ofColor::black, ofColor::white }); }
+  static Palette whiteToBlack() { return Palette({ ofColor::white, ofColor::black }); }
+  static Palette rainbow(int steps = 6) { auto colors = ofxCortex::core::utils::Array::constructVector<ofColor>(steps, [](int i, float t) { return ofColor::fromHsb(t * 255.0, 255.0, 255.0); }); return Palette(colors); }
+  static Palette dayCycle() { return Palette({ ofColor::fromHex(0x040b3c), ofColor::fromHex(0x012459), ofColor::fromHex(0x003972), ofColor::fromHex(0x003972), ofColor::fromHex(0x004372), ofColor::fromHex(0x004372), ofColor::fromHex(0x016792), ofColor::fromHex(0x07729f), ofColor::fromHex(0x12a1c0), ofColor::fromHex(0x74d4cc), ofColor::fromHex(0xefeebc), ofColor::fromHex(0xfee154), ofColor::fromHex(0xfdc352), ofColor::fromHex(0xffac6f), ofColor::fromHex(0xfda65a), ofColor::fromHex(0xfd9e58), ofColor::fromHex(0xf18448), ofColor::fromHex(0xf06b7e), ofColor::fromHex(0xca5a92), ofColor::fromHex(0x5b2c83), ofColor::fromHex(0x371a79), ofColor::fromHex(0x28166b), ofColor::fromHex(0x192861), ofColor::fromHex(0x040b3c) }); }
   
   
   // Rendering
@@ -109,6 +117,26 @@ public:
   }
   
   const ofTexture & getTexture() const { return paletteFBO.getTexture(); }
+  
+  void begin(const ofTexture & target)
+  {
+    isUsingArbTex = ofGetUsingArbTex();
+    
+    ofEnableArbTex();
+    
+    getShader().begin();
+    getShader().setUniformTexture("palette", getTexture(), 1);
+    getShader().setUniform2f("u_paletteSize", getTexture().getWidth(), getTexture().getHeight());
+    getShader().setUniform2f("u_resolution", target.getWidth(), target.getHeight());
+  }
+  
+  void end()
+  {
+    getShader().end();
+    
+    if (isUsingArbTex) ofEnableArbTex();
+    else ofDisableArbTex();
+  }
   
   
   // Serialization
@@ -217,6 +245,77 @@ protected:
       case LookupMode::COSINE: return cos(TWO_PI * 0.5 * t + PI) * 0.5 + 0.5;
       case LookupMode::COSINE_LOOP: return cos(TWO_PI * 1.0 * t + PI) * 0.5 + 0.5;
     }
+  }
+  
+  bool isUsingArbTex { false };
+  const ofShader & getShader()
+  {
+    static ofShader shader;
+    
+    if (!shader.isLoaded())
+    {
+      std::cout << "Setup Palette-shader" << std::endl;
+      
+      string vertexShader = "#version 150\n";
+      string fragShader = "#version 150\n";
+      
+      vertexShader += STRINGIFY
+      (
+       uniform mat4 modelViewProjectionMatrix;
+       in vec4 position;
+       in vec4 color;
+       in vec4 normal;
+       in vec2 texcoord;
+       
+       out vec2 texCoordVarying;
+       out vec4 colorVarying;
+       
+       void main() {
+         texCoordVarying = texcoord;
+         colorVarying = color;
+         gl_Position = modelViewProjectionMatrix * position;
+       }
+       );
+      
+      fragShader += STRINGIFY
+      (
+       float luma(vec3 color) {
+         return dot(color, vec3(0.299, 0.587, 0.114));
+       }
+
+       float luma(vec4 color) {
+         return dot(color.rgb, vec3(0.299, 0.587, 0.114));
+       }
+       
+       in vec4 colorVarying;
+       in vec2 texCoordVarying;
+       out vec4 outputColor;
+       
+       uniform sampler2DRect tex0;
+       uniform sampler2DRect palette;
+       uniform vec2 u_paletteSize;
+       
+       uniform vec2 u_resolution;
+       
+       void main() {
+         vec2 st = texCoordVarying;
+         vec2 uv = st / u_resolution;
+         
+         vec4 sample = texture(tex0, st);
+         float brightness = luma(sample);
+         vec4 paletteColor = texture(palette, vec2(brightness, 0) * u_paletteSize);
+         
+         outputColor = paletteColor;
+       }
+       );
+      
+      shader.setupShaderFromSource(GL_VERTEX_SHADER, vertexShader);
+      shader.setupShaderFromSource(GL_FRAGMENT_SHADER, fragShader);
+      shader.bindDefaults();
+      shader.linkProgram();
+    }
+    
+    return shader;
   }
   
   bool isDirty { true };

@@ -2,6 +2,7 @@
 
 #include "ofLog.h"
 #include "ofUtils.h"
+#include "ofGraphics.h"
 #include "ofMath.h"
 #include "ofParameterGroup.h"
 
@@ -14,7 +15,7 @@ public:
   virtual double operator()(double x) = 0;
   virtual void draw(const ofRectangle & viewport)
   {
-    float inset = 16;
+    float inset = 12;
     int steps = viewport.width / 4.0f;
     
     ofPushStyle();
@@ -98,7 +99,7 @@ public:
   }
   
 protected:
-  ofParameter<float> k_p { "K", 0.5, 0.0, 1.0 };
+  ofParameter<float> k_p { "K", 0.5, 0.0, 8.0 };
   
 };
 

@@ -1,10 +1,12 @@
 #pragma once
 
-#include "ofxCortex/utils/Numbers.h"
+#include <functional>
+#include <algorithm>
+#include <type_traits>
+
+#include "ofxCortex/utils/NumberUtils.h"
 
 namespace ofxCortex { namespace core { namespace utils {
-
-namespace Array {
 
 #define ALIAS_TEMPLATE_FUNCTION(highLevelF, lowLevelF) \
 template<typename... Args> \
@@ -12,6 +14,8 @@ inline auto highLevelF(Args&&... args) -> decltype(lowLevelF(std::forward<Args>(
 { \
 return lowLevelF(std::forward<Args>(args)...); \
 }
+
+namespace Array {
 
 template<typename Container, class T = typename Container::value_type>
 static T& atWrapped(Container & v, int index)
@@ -30,6 +34,23 @@ static T randomInVector(const Container & v)
 }
 
 ALIAS_TEMPLATE_FUNCTION(sample, randomInVector)
+
+template<typename T>
+T randomWeighted(const std::unordered_map<T, float>& weightedMap) 
+{
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  
+  std::vector<T> elements;
+  std::vector<float> probabilities;
+  for (const auto& pair : weightedMap) {
+    elements.push_back(pair.first);
+    probabilities.push_back(pair.second);
+  }
+  
+  std::discrete_distribution<> distribution(probabilities.begin(), probabilities.end());
+  return elements[distribution(gen)];
+}
 
 template<typename Container, class T = typename Container::value_type>
 Container exclude(const Container& input, const Container& exclude)
@@ -71,7 +92,14 @@ static std::vector<T> constructVector(int n, std::function<T(int)> func = [](int
 {
   std::vector<T> output(n);
   for (int i = 0; i < n; i++) output[i] = func(i);
-  //  std::generate(output.begin(), output.end(), func);
+  return output;
+}
+
+template<typename T>
+static std::vector<T> constructVector(int n, std::function<T(int, float)> func = [](int index, float t) { return T(); })
+{
+  std::vector<T> output(n);
+  for (int i = 0; i < n; i++) output[i] = func(i, (float) i / (n - 1.0f));
   return output;
 }
 
@@ -134,9 +162,9 @@ ALIAS_TEMPLATE_FUNCTION(sampleN, randomSubset)
 
 template<typename T>
 std::vector<size_t> randomIndices(const std::vector<T>& inputVector, size_t n = -1) {
-  if (n == 0) return std::vector<size_t>();
-  if (n == -1) n = inputVector.size() - 1;
-  n = std::min(n, inputVector.size() - 1); // Clamp n to the size of the input vector
+  if (n == 0 || inputVector.size() == 0) return std::vector<size_t>();
+  else if (n == -1) n = inputVector.size();
+  else n = std::min(n, inputVector.size()); // Clamp n to the size of the input vector
   
   std::vector<size_t> indices(inputVector.size());
   std::iota(indices.begin(), indices.end(), 0);
@@ -158,23 +186,15 @@ static void appendVector(Container<T, Allocator> & original, Container<T, Alloca
 
 ALIAS_TEMPLATE_FUNCTION(append, appendVector)
 
-template<typename OutputType, typename InputType, typename Func>
-static std::vector<OutputType> transform(const std::vector<InputType> & v, Func func)
+template<typename OutputType, typename InputType, template<typename...> class Container, typename Function>
+static Container<OutputType> transform(const Container<InputType> & v, Function func)
 {
-  std::vector<OutputType> output;
-  std::transform(begin(v), end(v), std::back_inserter(output), func);
+  Container<OutputType> output;
+  std::transform(v.begin(), v.end(), std::back_inserter(output), func);
   return output;
 }
 
 ALIAS_TEMPLATE_FUNCTION(map, transform)
-
-//template<typename T, template <typename, typename...> class Container, typename... Args, typename Func, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
-//static std::vector<T> filter(const Container<T, Args...> & v, Func func)
-//{
-//  std::vector<T> output;
-//  std::copy_if(begin(v), end(v), std::back_inserter(output), func);
-//  return output;
-//}
 
 template <typename Container, typename Function>
 static Container filter(const Container& source, const Function & func)
@@ -184,33 +204,10 @@ static Container filter(const Container& source, const Function & func)
   return output;
 }
 
-//template<typename InputType, typename OutputType, typename Func>
-//static OutputType accumulate(const std::vector<InputType> & v, Func func, OutputType initialValue = OutputType(0))
-//{
-//  return std::accumulate(begin(v), end(v), initialValue, func);
-//}
-
-//template <
-//  typename InputType,
-//  typename OutputType = InputType,
-//  template <typename, typename...> class Container,
-//  typename... Args,
-//  typename Func = std::plus<InputType>,
-//  typename = typename std::enable_if<std::is_arithmetic<InputType>::value, InputType>::type
-//>
-//static OutputType accumulate(const Container<InputType, Args...>& container, Func func = Func())
-//{
-//    return std::accumulate(container.begin(), container.end(), OutputType(), func);
-//}
-
-template <
-typename OutputType,
-typename Container,
-typename Func
->
-static OutputType accumulate(const Container& container, Func func = Func())
+template <typename OutputType, typename Container, typename Function>
+static OutputType accumulate(const Container& container, Function func = Function(), OutputType initial = OutputType())
 {
-  return std::accumulate(container.begin(), container.end(), OutputType(), func);
+  return std::accumulate(container.begin(), container.end(), initial, func);
 }
 
 template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
@@ -239,6 +236,20 @@ static T median(const Container<T, Args...> & v)
 }
 
 template<typename T>
+static std::vector<T> set_union(const std::vector<T> & a, const std::vector<T> & b)
+{
+  std::vector<T> A = a;
+  std::vector<T> B = b;
+  
+  std::sort(A.begin(), A.end());
+  std::sort(B.begin(), B.end());
+  
+  std::vector<T> output;
+  std::set_union(A.cbegin(), A.cend(), B.cbegin(), B.cend(), std::back_inserter(output));
+  return output;
+}
+
+template<typename T>
 static std::vector<T> intersection(const std::vector<T> & a, const std::vector<T> & b)
 {
   std::vector<T> A = a;
@@ -248,21 +259,21 @@ static std::vector<T> intersection(const std::vector<T> & a, const std::vector<T
   std::sort(B.begin(), B.end());
   
   std::vector<T> output;
-  std::set_intersection(A.begin(), A.end(), B.begin(), B.end(), std::back_inserter(output));
+  std::set_intersection(A.cbegin(), A.cend(), B.cbegin(), B.cend(), std::back_inserter(output));
   return output;
 }
 
 template<typename T>
 static std::vector<T> difference(const std::vector<T> & a, const std::vector<T> & b)
 {
-  std::vector<T> output;
   std::vector<T> A = a;
   std::vector<T> B = b;
   
   std::sort(A.begin(), A.end());
   std::sort(B.begin(), B.end());
   
-  std::set_difference(A.begin(), A.end(), B.begin(), B.end(), std::back_inserter(output));
+  std::vector<T> output;
+  std::set_difference(A.cbegin(), A.cend(), B.cbegin(), B.cend(), std::back_inserter(output));
   return output;
 }
 
@@ -275,7 +286,7 @@ static bool includes(const std::vector<T> & a, const std::vector<T> & b)
   std::sort(A.begin(), A.end());
   std::sort(B.begin(), B.end());
   
-  return std::includes(A.begin(), A.end(), B.begin(), B.end());
+  return std::includes(A.cbegin(), A.cend(), B.cbegin(), B.cend());
 }
 
 enum CoordinateEdges {
@@ -343,6 +354,5 @@ std::vector<Value> values(const Map& m)
 }
 
 }
-
 
 }}}

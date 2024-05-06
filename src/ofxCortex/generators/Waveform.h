@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ofxCortex/utils/Parameters.h"
+#include "ofxCortex/utils/ParameterUtils.h"
 
 namespace ofxCortex { namespace core { namespace generators {
 
