@@ -18,66 +18,27 @@ public:
     bool unsign { false };
     
     void BPMtoPeriod(float BPM) { this->period = 60.0 / BPM; }
+    
+    friend std::ostream& operator<<(std::ostream& os, const Settings& settings)
+    {
+      os << "Type: " << Waveform::typeToString(settings.type) << " | Period: " << settings.period << " | Amplitude: " << settings.amplitude << " | Shift: " << settings.shift << " | Unsign: " << std::boolalpha << settings.unsign;
+      
+      return os;
+    }
   };
   
-  static void draw(const Settings & settings, const ofRectangle & viewport)
-  {
-    float inset = 16;
-    int steps = viewport.width / 2.0f;
-    
-    ofPushStyle();
-    
-    ofFill();
-    ofSetColor(12);
-    ofDrawRectRounded(viewport, 6);
-
-    ofNoFill();
-    ofSetColor(255, 32);
-    ofDrawRectRounded(viewport, 6);
-    
-    ofSetColor(64);
-    ofDrawLine(viewport.getLeft() + inset, viewport.getCenter().y, viewport.getRight() - inset, viewport.getCenter().y);
-    ofDrawLine(viewport.getLeft() + inset, viewport.getCenter().y, viewport.getLeft() + inset, viewport.getCenter().y);
-    
-    ofFill();
-    ofDrawCircle(viewport.getLeft() + inset, viewport.getCenter().y, 2);
-    ofDrawCircle(viewport.getRight() - inset, viewport.getCenter().y, 2);
-    
-    ofNoFill();
-    ofSetColor(255);
-    ofBeginShape();
-    for (int i = 0; i <= steps; i++)
-    {
-      float t = (float) i / steps;
-      float x = ofMap(t, 0, 1, viewport.getLeft() + inset, viewport.getRight() - inset, true);
-      float y = ofMap(wave(t, settings), -1, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true);
-      
-      ofVertex(x, y);
-    }
-    ofEndShape();
-    
-    ofFill();
-    ofSetColor(128);
-    ofDrawCircle(viewport.getLeft() + inset, ofMap(wave(0.0, settings), -1, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true), 2);
-    ofDrawCircle(viewport.getRight() - inset, ofMap(wave(1.0, settings), -1, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true), 2);
-    
-    ofDrawBitmapString(ofxCortex::core::utils::String::toTitleCase(typeToString(settings.type)), viewport.getLeft() + inset, viewport.getTop() + inset + 11 + 4);
-    
-    ofSetColor(255, 64);
-    ofDrawBitmapString("0", viewport.getLeft() + inset, viewport.getCenter().y - 4);
-    ofDrawBitmapString("1", viewport.getRight() - inset - 8, viewport.getCenter().y - 4);
-    
-    ofPopStyle();
-  }
-  
 public:
-  
-  Waveform() {
-    this->parameters = getParameters();
-    this->settingsChanged = parameters.parameterChangedE().newListener([this](const ofAbstractParameter & param) {
+  Waveform(const std::string & name = "Waveform") {
+    this->parameters = getParameters(name);
+    
+    settings = getSettings(parameters);
+    this->settingsChanged = parameters.parameterChangedE().newListener([&, this](const ofAbstractParameter & param) {
       settings = getSettings(parameters);
     });
   };
+  
+  operator ofParameterGroup&() { return this->parameters; }
+  operator const Settings&() { return this->settings; }
   
   double wave(double x)
   {
@@ -158,7 +119,6 @@ public:
     return square(x, settings.period, settings.amplitude, settings.shift, settings.unsign);
   }
   
-  
   static double period(double freq) { return 1.0 / freq; }
   static double frequency(double period) { return 1.0 / period; }
   
@@ -173,9 +133,9 @@ public:
     parameters.add(params);
   }
   
-  static ofParameterGroup getParameters(std::string name = "Waveform")
+  static ofParameterGroup getParameters(const std::string & name = "Waveform")
   {
-    ofParameterGroup waveformParameters { name };
+    ofParameterGroup waveformParameters { "Waveform" };
     
     utils::Parameters::addParameter<string>("Type", "Sine", waveformParameters);
     utils::Parameters::addParameter<float>("Period", 1.0f, 0.0f, 500.f, waveformParameters);
@@ -189,12 +149,62 @@ public:
   static Settings getSettings(const ofParameterGroup & parameters) {
     Settings s;
     
-    s.period = utils::Parameters::getParameter<float>("Waveform::Period", parameters);
-    s.amplitude = utils::Parameters::getParameter<float>("Waveform::Amplitude", parameters);
-    s.shift = utils::Parameters::getParameter<float>("Waveform::Shift", parameters);
-    s.unsign = utils::Parameters::getParameter<bool>("Waveform::Unsigned", parameters);
+    s.period = utils::Parameters::getParameter<float>("Period", parameters);
+    s.amplitude = utils::Parameters::getParameter<float>("Amplitude", parameters);
+    s.shift = utils::Parameters::getParameter<float>("Shift", parameters);
+    s.unsign = utils::Parameters::getParameter<bool>("Unsigned", parameters);
     
     return s;
+  }
+  
+  static void draw(const Settings & settings, const ofRectangle & viewport)
+  {
+    float inset = 16;
+    int steps = viewport.width / 2.0f;
+    
+    ofPushStyle();
+    
+    ofFill();
+    ofSetColor(12);
+    ofDrawRectRounded(viewport, 6);
+
+    ofNoFill();
+    ofSetColor(255, 32);
+    ofDrawRectRounded(viewport, 6);
+    
+    ofSetColor(64);
+    ofDrawLine(viewport.getLeft() + inset, viewport.getCenter().y, viewport.getRight() - inset, viewport.getCenter().y);
+    ofDrawLine(viewport.getLeft() + inset, viewport.getCenter().y, viewport.getLeft() + inset, viewport.getCenter().y);
+    
+    ofFill();
+    ofDrawCircle(viewport.getLeft() + inset, viewport.getCenter().y, 2);
+    ofDrawCircle(viewport.getRight() - inset, viewport.getCenter().y, 2);
+    
+    ofNoFill();
+    ofSetColor(255);
+    ofBeginShape();
+    for (int i = 0; i <= steps; i++)
+    {
+      float t = (float) i / steps;
+      float x = ofMap(t, 0, 1, viewport.getLeft() + inset, viewport.getRight() - inset, true);
+      float y = ofMap(wave(t, settings), -1, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true);
+      
+      ofVertex(x, y);
+    }
+    ofEndShape();
+    
+    ofFill();
+    ofSetColor(128);
+    ofDrawCircle(viewport.getLeft() + inset, ofMap(wave(0.0, settings), -1, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true), 2);
+    ofDrawCircle(viewport.getRight() - inset, ofMap(wave(1.0, settings), -1, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true), 2);
+    
+    ofDrawBitmapString(ofxCortex::core::utils::String::toTitleCase(typeToString(settings.type)), viewport.getLeft() + inset, viewport.getTop() + inset + 11 + 4);
+    
+    ofSetColor(255, 64);
+    ofDrawBitmapString("0", viewport.getLeft() + inset, viewport.getCenter().y - 4);
+    ofDrawBitmapString("1", viewport.getRight() - inset - 8, viewport.getCenter().y - 4);
+    
+    ofPopStyle();
   }
   
 protected:
@@ -223,10 +233,6 @@ protected:
   
   ofEventListener settingsChanged;
   Settings settings;
-  
-private:
-  
-  
   
 };
 

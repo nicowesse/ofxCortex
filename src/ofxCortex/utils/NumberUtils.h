@@ -34,13 +34,13 @@ static double normalizeIndex(size_t index, const std::vector<T> & v) { return (d
 template<typename T = float>
 class Lerped {
 public:
-  Lerped(T value = T(), float smoothing = 0.1f, const std::string & name = "Lerped Value") : current(value), target(value)
+  Lerped(T value = T(), float _smoothing = 0.1f, const std::string & name = "Lerped Value") : current(value), target(value)
   {
     ofAddListener(ofEvents().update, this, &Lerped::update);
     
     parameters.setName(name);
-    parameters.add(currentValue, this->smoothing);
-    this->smoothing.set(smoothing);
+    parameters.add(currentValue, smoothing);
+    this->smoothing.set(_smoothing);
   }
   
   ~Lerped()
@@ -66,9 +66,9 @@ protected:
   ofParameter<float> smoothing { "Smoothing", 0.1, 0.0, 1.0 };
   
   void update(ofEventArgs & e) {
-    if (ofIsFloatEqual(current, target)) return;
+    if (ofIsFloatEqual(current, target)) { current = target; return; }
     
-    current = ofLerp(current, target, 1.0 - pow(this->smoothing.get(), ofGetLastFrameTime()));
+    current = ofLerp(current, target, 1.0 - exp(-smoothing.get() * ofGetLastFrameTime()));
     currentValue = ofToString(current);
   }
 };
@@ -78,8 +78,7 @@ inline void Lerped<glm::vec3>::update(ofEventArgs & e)
 {
   if (current == target) return;
   
-  float t = 1.0 - pow(this->smoothing.get(), ofGetLastFrameTime());
-  current = glm::mix(current, target, t);
+  current = glm::mix(current, target, 1.0 - exp(-smoothing.get() * ofGetLastFrameTime()));
 }
 
 

@@ -28,38 +28,85 @@ public:
   };
   
 public:
-  ADSR() {
+  ADSR(const std::string & name = "ADSR", double attack = 0.0, double decay = 0.0, double sustain = 1.0, double release = 1000.0)
+  {
     reset();
-    setAttack(0);
-    setDecay(0);
-    setRelease(0);
-    setSustainLevel(1.0);
+    setAttack(attack);
+    setDecay(decay);
+    setSustainLevel(sustain);
+    setRelease(release);
+    
     setTargetRatioA(0.3);
     setTargetRatioDR(0.0001);
     
     startThread();
     timer.setPeriodicEvent(1000000);
     
-    parameters.setName("ADSR");
-    parameters.add(attackRateParameter, decayRateParameter, releaseRateParameter, sustainLevelParameter);
-    listeners.push(attackRateParameter.newListener([this](int & param){ this->setAttack((double) param); }));
-    listeners.push(decayRateParameter.newListener([this](int & param){ this->setDecay((double) param); }));
-    listeners.push(releaseRateParameter.newListener([this](int & param){ this->setRelease((double) param); }));
-    listeners.push(sustainLevelParameter.newListener([this](float & param){ this->setSustainLevel((double) param); }));
+    parameters.setName(name);
+    parameters.add(triggerParameter, attackRateParameter, decayRateParameter, releaseRateParameter, sustainLevelParameter, outputParameter);
+    
+    onTrigger = triggerParameter.newListener([this](){
+      this->triggerAndRelease();
+    });
+  }
+  
+  ADSR(const ADSR& other) 
+  {
+    state = other.state;
+    shouldRelease = other.shouldRelease;
+    output = other.output;
+    targetRatioA = other.targetRatioA;
+    targetRatioDR = other.targetRatioDR;
+    shouldRelease = other.shouldRelease;
+    
+    parameters = other.parameters;
+    triggerParameter = other.triggerParameter;
+    attackRateParameter = other.attackRateParameter;
+    decayRateParameter = other.decayRateParameter;
+    releaseRateParameter = other.releaseRateParameter;
+    sustainLevelParameter = other.sustainLevelParameter;
+    outputParameter = other.outputParameter;
+    
+    onTrigger = triggerParameter.newListener([this](){
+      this->triggerAndRelease();
+    });
+  }
+  
+  ADSR& operator=(const ADSR& other) 
+  {
+    if (this != &other)
+    {
+      state = other.state;
+      shouldRelease = other.shouldRelease;
+      output = other.output;
+      targetRatioA = other.targetRatioA;
+      targetRatioDR = other.targetRatioDR;
+      shouldRelease = other.shouldRelease;
+      
+      parameters = other.parameters;
+      triggerParameter = other.triggerParameter;
+      attackRateParameter = other.attackRateParameter;
+      decayRateParameter = other.decayRateParameter;
+      releaseRateParameter = other.releaseRateParameter;
+      sustainLevelParameter = other.sustainLevelParameter;
+      outputParameter = other.outputParameter;
+      
+      onTrigger = triggerParameter.newListener([this](){
+        this->triggerAndRelease();
+      });
+    }
+    
+    return *this;
   }
   
   ~ADSR() {
-    if (isThreadRunning()){
-      waitForThread(true, 5000);
-    }
+    if (isThreadRunning()) { waitForThread(true, 5000); }
   }
   
+  
   void gate(bool status) {
-    if (status) {
-      state = State::ATTACK;
-    } else if (state != State::IDLE) {
-      state = State::RELEASE;
-    }
+    if (status) { state = State::ATTACK; }
+    else if (state != State::IDLE) { state = State::RELEASE; }
   }
   
   void trigger() { this->gate(true); }
@@ -69,19 +116,13 @@ public:
     this->trigger();
   };
   
-  double getOutput() {
-    return output;
-  }
-  inline operator double() const { return output; }
+  double getOutput() { return output; }
+  operator float()  const { return output; }
+  operator double() const { return output; }
   
-  void setName(const std::string &name)
-  {
-    parameters.setName(name);
-  }
+  void setName(const std::string &name) { parameters.setName(name); }
   
-  State getState() {
-    return state;
-  }
+  State getState() { return state; }
   
   std::string getStateString() {
     switch (state) {
@@ -93,46 +134,21 @@ public:
     }
   }
   
-  void setAttack(double rate) {
-    attackRate = rate;
-    attackCoef = calcCoef(rate, targetRatioA);
-    attackBase = (1.0 + targetRatioA) * (1.0 - attackCoef);
-  }
+  double getAttackRate() const { return (double) attackRateParameter.get(); }
+  void setAttack(double rate) { attackRateParameter = (int) rate; }
   
-  void setDecay(double rate) {
-    decayRate = rate;
-    decayCoef = calcCoef(rate, targetRatioDR);
-    decayBase = (sustainLevel - targetRatioDR) * (1.0 - decayCoef);
-  }
+  double getDecayRate() const { return (double) decayRateParameter.get(); }
+  void setDecay(double rate) { decayRateParameter = (int) rate; }
   
-  void setRelease(double rate) {
-    releaseRate = rate;
-    releaseCoef = calcCoef(rate, targetRatioDR);
-    releaseBase = -targetRatioDR * (1.0 - releaseCoef);
-  }
+  double getReleaseRate() const { return (double) releaseRateParameter.get(); }
+  void setRelease(double rate) { releaseRateParameter = (int) rate; }
   
-  void setSustainLevel(double level) {
-    sustainLevel = level;
-    decayBase = (sustainLevel - targetRatioDR) * (1.0 - decayCoef);
-  }
+  double getSustainLevel() const { return (double) sustainLevelParameter.get(); }
+  void setSustainLevel(double level) { sustainLevelParameter = (float) level; }
   
-  void setTargetRatioA(double targetRatio) {
-    if (targetRatio < 0.000000001)
-      targetRatio = 0.000000001;  // -180 dB
-    targetRatioA = targetRatio;
-    attackCoef = calcCoef(attackRate, targetRatioA);
-    attackBase = (1.0 + targetRatioA) * (1.0 - attackCoef);
-  }
+  void setTargetRatioA(double targetRatio) { targetRatioA = std::max(0.000000001, targetRatio); }
   
-  void setTargetRatioDR(double targetRatio) {
-    if (targetRatio < 0.000000001)
-      targetRatio = 0.000000001;  // -180 dB
-    targetRatioDR = targetRatio;
-    decayCoef = calcCoef(decayRate, targetRatioDR);
-    releaseCoef = calcCoef(releaseRate, targetRatioDR);
-    decayBase = (sustainLevel - targetRatioDR) * (1.0 - decayCoef);
-    releaseBase = -targetRatioDR * (1.0 - releaseCoef);
-  }
+  void setTargetRatioDR(double targetRatio) { targetRatioDR = std::max(0.000000001, targetRatio); }
   
   void reset() {
     state = State::IDLE;
@@ -158,60 +174,72 @@ protected:
   
   void process() {
     switch (state) {
-      case State::IDLE:
-        break;
+      case State::IDLE: break;
       case State::ATTACK:
+      {
+        double attackCoef = calcCoef(getAttackRate(), targetRatioA);
+        double attackBase = (1.0 + targetRatioA) * (1.0 - attackCoef);
+        
         output = attackBase + output * attackCoef;
         if (output >= 1.0) {
           output = 1.0;
           state = State::DECAY;
         }
         break;
+      }
       case State::DECAY:
+      {
+        double decayCoef = calcCoef(getDecayRate(), targetRatioDR);
+        double decayBase = (getSustainLevel() - targetRatioDR) * (1.0 - decayCoef);
+        
         output = decayBase + output * decayCoef;
-        if (output <= sustainLevel) {
-          output = sustainLevel;
+        if (output <= getSustainLevel()) {
+          output = getSustainLevel();
           state = State::SUSTAIN;
         }
         break;
+      }
       case State::SUSTAIN:
+      {
         if (shouldRelease) state = State::RELEASE;
         break;
+      }
       case State::RELEASE:
+      {
+        double releaseCoef = calcCoef(getReleaseRate(), targetRatioDR);
+        double releaseBase = -targetRatioDR * (1.0 - releaseCoef);
+        
         output = releaseBase + output * releaseCoef;
         shouldRelease = false;
         if (output <= 0.0) {
           output = 0.0;
           state = State::IDLE;
         }
+        break;
+      }
     }
+    
+    outputParameter = ofToString(output, 4);
   }
   
-  ofEventListeners listeners;
+  
+  ofParameter<void> triggerParameter { "Trigger" };
+  ofEventListener onTrigger;
+  
   ofParameter<int> attackRateParameter { "Attack", 0, 0, 4000 };
   ofParameter<int> decayRateParameter { "Decay", 0, 0, 4000 };
   ofParameter<int> releaseRateParameter { "Release", 0, 0, 4000 };
   ofParameter<float> sustainLevelParameter { "Sustain", 1.0f, 0.0f, 1.0f };
   
-  State state;
+  ofParameter<std::string> outputParameter { "Output", "0.0" };
+  
+  State state { State::IDLE };
   bool shouldRelease { false };
   
   double output;
-  double attackRate;
-  double decayRate;
-  double releaseRate;
-  double sustainLevel;
-  
-  double attackCoef;
-  double decayCoef;
-  double releaseCoef;
   
   double targetRatioA;
   double targetRatioDR;
-  
-  double attackBase;
-  double decayBase;
-  double releaseBase;
   
   double calcCoef(double rate, double targetRatio) {
     return (rate <= 0) ? 0.0 : exp(-log((1.0 + targetRatio) / targetRatio) / rate);
