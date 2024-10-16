@@ -65,6 +65,11 @@ inline static glm::vec2 getRotated(const glm::vec2 & v, float radians)
 template<typename T> inline static void limit(T & v, float max) { v = glm::min(v, glm::normalize(v) * max); }
 template<typename T> inline static T getLimited(const T & v, float max) { return glm::min(v, glm::normalize(v) * max); }
 
+enum class NormalSide : int { LEFT = 0, RIGHT = 1  };
+inline static glm::vec2 getNormal(const glm::vec2 & V, NormalSide side) {
+  return glm::normalize(glm::vec2{ V.y, V.x }) * glm::vec2((1 -(int) side) * 2 - 1, (int) side * 2 - 1);
+}
+
 }
 
 

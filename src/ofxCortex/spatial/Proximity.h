@@ -3,45 +3,43 @@
 #include <vector>
 #include "ofVectorMath.h"
 #include "ofxCortex/utils/GraphicUtils.h"
+#include "ofxCortex/utils/DebugUtils.h"
 
-namespace ofxCortex { namespace core { namespace utils {
+namespace ofxCortex { namespace core { namespace spatial {
 
 template <class T>
-class Proximity
+class Proximity2D
 {
 public:
   friend class ProximityRenderer;
   
-  Proximity() = default;
+  Proximity2D() = default;
   
-  void setup(std::function<glm::vec3(const T&)> getPositionFunc, glm::ivec3 bins = glm::ivec3(10, 10, 1), glm::vec3 position = glm::vec3(), glm::vec3 size = glm::vec3(ofGetWidth(), ofGetHeight(), 1))
+  void setup(std::function<glm::vec2(const T&)> _getPositionFunc, glm::ivec2 _bins = glm::ivec2(10, 10), glm::vec2 _position = glm::vec2(), glm::vec2 _size = glm::vec2(ofGetWidth(), ofGetHeight()))
   {
-    _binCount = bins;
-    _position = position;
-    _size = size;
-    _binSize = _size / (glm::vec3) _binCount;
+    binCount = _bins;
+    boundsPosition = _position;
+    boundsSize = _size;
+    binSize = boundsSize / (glm::vec2) binCount;
     
-    _bins.resize(_binCount.x * _binCount.y * MIN(1, _binCount.z)); //(bins.z > 0 ? _binCount.z : 1));
-    _getPositionFunction = getPositionFunc;
+    bins.resize(binCount.x * binCount.y);
+    getPositionFunction = _getPositionFunc;
   }
   
   void update()
   {
-    for (auto & bin : _bins) { bin.clear(); }
+    for (auto & bin : bins) { bin.clear(); }
     
-    _binSize = _size / (glm::vec3) _binCount;
-    
-    for (auto & obj : _objs)
+    for (auto & obj : items)
     {
-      int index = getBinIndexFromPosition(_getPositionFunction(*obj));
-      
-      if (isValidBin(index)) { _bins[index].push_back(obj); }
+      int binIndex = getBinIndexFromPosition(getPositionFunction(*obj));
+      if (isValidBin(binIndex)) bins[binIndex].push_back(obj);
     }
   };
   
-  std::vector<std::shared_ptr<T>> getNearby(glm::vec3 position, float radius) const
+  std::vector<std::shared_ptr<T>> getNearby(const glm::vec2 & position, float radius) const
   {
-    if (!_getPositionFunction)
+    if (!getPositionFunction)
     {
       ofLogWarning() << "No position function!";
       return std::vector<std::shared_ptr<T>>();
@@ -51,12 +49,9 @@ public:
     int maxXBin = indexX(position.x + radius);
     int minYBin = indexY(position.y - radius);
     int maxYBin = indexY(position.y + radius);
-    int minZBin = indexZ(position.z - radius);
-    int maxZBin = indexZ(position.z + radius);
     
     if (maxXBin < minXBin) std::swap(maxXBin, minXBin);
     if (maxYBin < minYBin) std::swap(maxYBin, minYBin);
-    if (maxZBin < minZBin) std::swap(maxZBin, minZBin);
     
     std::vector<std::shared_ptr<T>> neighbours;
     
@@ -66,18 +61,13 @@ public:
     {
       for (int y = minYBin; y <= maxYBin; y++)
       {
-        for (int z = minZBin; z <= maxZBin; z++)
+        int index = to1D(x, y);
+        if (isValidBin(index))
         {
-          if (isValidBin(x, y, z))
+          for (const std::shared_ptr<T> & item : bins[index])
           {
-            auto objs = _bins[to1D(x, y, z)];
-            
-            for (int i = 0; i < objs.size(); i++)
-            {
-              float distance = glm::distance2(_getPositionFunction(*objs[i]), position);
-              
-              if (distance <= maxDistance) neighbours.push_back(objs[i]);
-            }
+            float d = glm::distance2(getPositionFunction(*item), position);
+            if (d > std::numeric_limits<float>::epsilon() && d <= maxDistance) neighbours.push_back(item);
           }
         }
       }
@@ -86,94 +76,59 @@ public:
     return neighbours;
   };
   
-  void insert(std::shared_ptr<T> obj) {
-    //        _objs.push_back(obj);
-    
-    int index = getBinIndexFromPosition(_getPositionFunction(*obj));
-    if (isValidBin(index)) { _bins[index].push_back(obj); }
-  }
+  void insert(std::shared_ptr<T> obj) { items.push_back(obj); }
   
-  void remove(int index) { _objs.erase(_objs.begin() + index); }
-  void remove(std::shared_ptr<T> obj) { _objs.erase(remove(_objs.begin(), _objs.end(), obj), _objs.end()); }
+  void remove(int index) { items.erase(items.begin() + index); }
+  void remove(std::shared_ptr<T> obj) { items.erase(remove(items.begin(), items.end(), obj), items.end()); }
   
   
-  int count() const { return _objs.size(); }
+  int count() const { return items.size(); }
   
-  glm::ivec3 getBinCount() const { return _binCount; }
-  glm::vec3  getBinSize() const { return _binSize; }
+  glm::ivec3 getBinCount() const { return binCount; }
+  glm::vec3  getBinSize() const { return binSize; }
   
   
 protected:
   
-  bool isValidBin(int index) const { return index < _bins.size(); }
+  bool isValidBin(int index) const { return index < bins.size(); }
+  bool isValidBin (int x, int y) const { return x >= 0 && x < binCount.x && y >= 0 && y < binCount.y; }
+  bool isValidBin (const glm::ivec2 & indices) const { return isValidBin(indices.x, indices.y); }
   
-  bool isValidBin (int x, int y, int z) const
-  {
-    return x >= 0 && x < _binCount.x && y >= 0 && y < _binCount.y && (_binCount.z < 1 || (z >= 0 && z < _binCount.z));
-  }
+  std::vector<T*> getBin(const glm::vec2 & position) { return bins[getBinIndexFromPosition(position)]; };
   
-  bool isValidBin (glm::ivec3 indices) const { return isValidBin(indices.x, indices.y, indices.z); }
+  int getBinIndexFromPosition(const glm::vec2 & pos) const { return to1D((glm::ivec2) getBinIndicesFromPosition(pos)); }
+  glm::ivec2 getBinIndicesFromPosition(const glm::vec2 & pos) const { return glm::ivec2(indexX(pos.x), indexY(pos.y)); }
   
-  std::vector<T*> getBin(glm::vec3 position)
-  {
-    return _bins[getBinIndexFromPosition(position)];
-  };
+  int indexX(float x) const { return floor((x - boundsPosition.x) / binSize.x); }
+  int indexY(float y) const { return floor((y - boundsPosition.y) / binSize.y); }
   
-  int getBinIndexFromPosition(glm::vec3 pos) const
-  {
-    return to1D((glm::ivec3) getBinIndicesFromPosition(pos));
-  }
-  
-  glm::ivec3 getBinIndicesFromPosition(glm::vec3 pos) const
-  {
-    return glm::ivec3(indexX(pos.x), indexY(pos.y), (_binCount.z > 0) ? indexZ(pos.z) : 0);
-  }
-  
-  int indexX(float x) const { return floor((x - _position.x) / _binSize.x); }
-  int indexY(float y) const { return floor((y - _position.y) / _binSize.y); }
-  int indexZ(float z) const { return floor((z - _position.z) / _binSize.z); }
-  
-  int to1D(int x, int y, int z) const
-  {
-    int binIndex = (y * _binCount.x) + x;
-    binIndex += z * (_binCount.x * _binCount.y);
-    
-    return binIndex;
-  }
-  
-  int to1D(glm::ivec3 indices) const { return to1D(indices.x, indices.y, indices.z); }
+  int to1D(int x, int y) const { return x + y * binCount.x; }
+  int to1D(const glm::ivec2 & indices) const { return to1D(indices.x, indices.y); }
   
 protected:
-  glm::vec3 _position;
-  glm::vec3 _size;
+  glm::vec2 boundsPosition;
+  glm::vec2 boundsSize;
   
-  glm::vec3 _binSize;
-  glm::ivec3 _binCount;
+  glm::vec2 binSize;
+  glm::ivec2 binCount;
   
-  std::function<glm::vec3(const T&)> _getPositionFunction;
+  std::function<glm::vec2(const T&)> getPositionFunction;
   
-  std::vector<std::shared_ptr<T>> _objs;
-  std::vector<std::vector<std::shared_ptr<T>> > _bins;
+  std::vector<std::shared_ptr<T>> items;
+  std::vector<std::vector<std::shared_ptr<T>> > bins;
 };
 
 class ProximityRenderer {
 public:
   template<typename T>
-  static void draw(const Proximity<T> & proximity)
+  static void draw(const Proximity2D<T> & proximity)
   {
-    if (proximity._binCount.z > 1) // 3D
+    ofRectangle bounds = ofRectangle(proximity.boundsPosition, proximity.boundsPosition + proximity.boundsSize);
+    ofPushMatrix();
     {
-      
+      ofxCortex::core::utils::Debug::drawGrid(bounds, proximity.binCount.x, proximity.binCount.y);
     }
-    else
-    {
-      ofRectangle bounds = ofRectangle(proximity._position, proximity._position + proximity._size);
-      ofPushMatrix();
-      {
-        ofxCortex::core::utils::Debug::drawGrid(bounds, proximity._binCount.x, proximity._binCount.y);
-      }
-      ofPopMatrix();
-    }
+    ofPopMatrix();
   }
   
 protected:

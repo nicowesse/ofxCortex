@@ -53,6 +53,33 @@ inline static float getNormalizedTime(float hours = ofGetHours(), float minutes 
 }
 
 
+template<typename T>
+static T interpolate(const std::vector<T> & values, float t)
+{
+  if (values.size() == 1 || ofIsFloatEqual(t, 0.0f)) return values[0];
+  if (ofIsFloatEqual(t, 1.0f)) return values[values.size() - 1];
+  
+  float valueT = t * (values.size() - 1);
+  int lower = floor(valueT);
+  int upper = ceil(valueT);
+  float interpolateT = ofClamp(valueT - lower, 0.0, 1.0);
+  
+  return ofInterpolateCosine(values[lower], values[upper], interpolateT);
+}
+
+template<typename T>
+static T slerp(const T & A, const T & B, float t)
+{
+     float dot = glm::dot(A, B);
+     glm::clamp(dot, -1.0f, 1.0f);
+  
+     float theta = acos(dot) * t;
+     T relative = glm::normalize(B - A * dot);
+  
+     return ((A * cos(theta)) + (relative * sin(theta)));
+}
+
+
 
 #pragma mark - String
 namespace String {

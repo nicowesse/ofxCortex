@@ -14,6 +14,9 @@
 #include "ofxCortex/utils/3DUtils.h"
 #include "ofxCortex/utils/GraphicUtils.h"
 #include "ofxCortex/utils/DebugUtils.h"
+#include "ofxCortex/utils/PolylineUtils.h"
+#include "ofxCortex/utils/ShaderUtils.h"
+#include "ofxCortex/utils/GeometryUtils.h"
 
 #include "ofxCortex/spatial/Proximity.h"
 #include "ofxCortex/spatial/QuadTree.h"

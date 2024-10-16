@@ -5,7 +5,7 @@
 
 namespace ofxCortex { namespace core { namespace utils {
 
-static float roundToNearest(float value, float multiple)
+inline static float roundToNearest(float value, float multiple)
 {
   if (multiple == 0)
     return value;
@@ -20,16 +20,58 @@ static float roundToNearest(float value, float multiple)
     return value + multiple - remainder;
 };
 
-static double floorToNearest(double value, double multiple)
+inline static double floorToNearest(double value, double multiple)
 {
   double divider = 1.0 / multiple;
   return floor(value * divider) / divider;
 }
 
-static unsigned long modulo(int a, int b) { return (b + (a % b)) % b; }
+inline static unsigned long modulo(int a, int b) { return (b + (a % b)) % b; }
 
 template<typename T>
-static double normalizeIndex(size_t index, const std::vector<T> & v) { return (double) index / (v.size() - 1); }
+inline static double normalizeIndex(size_t index, const std::vector<T> & v) { return (double) index / (v.size() - 1); }
+
+template <typename T>
+inline static T gradientDescent(T initialValue, std::function<T(T)> gradientFunc, double learningRate, T tolerance, int maxIterations) {
+  T value = initialValue;  // Start with the initial value
+  int iterations = 0;
+  
+  while (std::abs(gradientFunc(value)) > tolerance && iterations < maxIterations) {
+    T gradient = gradientFunc(value);  // Calculate gradient, often the difference between the current value and the target value
+    value = value - learningRate * gradient;  // Update value
+    
+    iterations++;
+  }
+  
+  return value;
+}
+
+class TimeIncrementer {
+public:
+  TimeIncrementer(const std::string & name = "Time", float min = -10.0, float max = 10.0) : value(0.0)
+  {
+    ofAddListener(ofEvents().update, this, &TimeIncrementer::update);
+    
+    parameters.setName(name);
+    parameters.add(currentValue, speed);
+    speed.setMin(min);
+    speed.setMax(max);
+  }
+  
+  ~TimeIncrementer() { ofRemoveListener(ofEvents().update, this, &TimeIncrementer::update); }
+  
+  operator float() const { return value; }
+  operator ofParameterGroup&() { return parameters; }
+  
+  ofParameterGroup parameters;
+protected:
+  float value;
+  
+  ofParameter<std::string> currentValue { "Value", "0.0" };
+  ofParameter<float> speed { "Speed", 0.1, -10.0, 10.0 };
+  
+  void update(ofEventArgs & e) { value += ofGetLastFrameTime() * speed; currentValue.set(ofToString(value)); }
+};
 
 template<typename T = float>
 class Lerped {

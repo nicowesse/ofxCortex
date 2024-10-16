@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ofMesh.h"
-#include "ofxCortex/types/Box.h"
+#include "ofxCortex/utils/Helpers.h"
 #include "ofxCortex/utils/ShapingUtils.h"
 
 namespace ofxCortex { namespace core { namespace utils {
@@ -42,6 +42,8 @@ static void drawTexCoordRectangle(float x = 0.0f, float y = 0.0f, float w = 1.0f
 
 static void drawTexCoordRectangle(const ofRectangle & rect) { drawTexCoordRectangle(rect.x, rect.y, rect.width, rect.height); }
 
+static void drawTexCoordRectangle(const ofBaseDraws & image) { drawTexCoordRectangle(0, 0, image.getWidth(), image.getHeight()); }
+
 static ofMesh getGradientMesh(const std::vector<ofColor> & colors, float w = 1.0, float h = 1.0)
 {
   ofMesh mesh;
@@ -53,7 +55,7 @@ static ofMesh getGradientMesh(const std::vector<ofColor> & colors, float w = 1.0
   {
     float t = i / (float)(steps - 1);
     
-    ofColor c = ofxCortex::core::utils::Shaping::interpolate(colors, t);
+    ofColor c = ofxCortex::core::utils::interpolate(colors, t);
     
     float x = t * w;
     mesh.addVertex(glm::vec3(x, 0, 0));
@@ -76,7 +78,7 @@ static ofMesh getGradientMeshVertical(const std::vector<ofColor> & colors, float
   {
     float t = i / (float)(steps - 1);
     
-    ofColor c = ofxCortex::core::utils::Shaping::interpolate(colors, t);
+    ofColor c = ofxCortex::core::utils::interpolate(colors, t);
     
     float y = t * h;
     mesh.addVertex(glm::vec3(0, y, 0));

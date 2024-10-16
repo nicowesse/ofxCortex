@@ -22,14 +22,13 @@ public:
     return PoissonDisc::sample(radius, this->bounds, numSamplesBeforeRejection);
   }
   
-  static std::vector<glm::vec2> sample(float radius, const ofRectangle & bounds, int numSamplesBeforeRejection = 30)
+  static std::vector<glm::vec2> sample(float radius, const ofRectangle & bounds, int numSamplesBeforeRejection = 32)
   {
     return PoissonDisc::sampleFromDensityFunction(radius, radius, bounds, [](const glm::vec2 &) { return 1.0f; }, numSamplesBeforeRejection);
   }
   
-  static std::vector<glm::vec2> sampleFromDensityFunction(float minRadius, float maxRadius, const ofRectangle & bounds, const std::function<float(const glm::vec2&)> & radiusFunc, int numSamplesBeforeRejection = 16)
+  static std::vector<glm::vec2> sampleFromDensityFunction(float minRadius, float maxRadius, const ofRectangle & bounds, const std::function<float(const glm::vec2&)> & radiusFunc, int numSamplesBeforeRejection = 32)
   {
-    
     float cellSize = minRadius / 1.41421f;
     
     const int columns = ceil(bounds.width / cellSize);
@@ -54,7 +53,7 @@ public:
       return true;
     };
     
-    auto isValid = [&, bounds](const glm::vec2 & candidate, float radius) -> bool {
+    auto isValid = [&](const glm::vec2 & candidate, float radius) -> bool {
       if (!bounds.inside(candidate)) return false;
       
       const int offset = 3;
@@ -82,7 +81,8 @@ public:
     
     addSample(glm::vec2(bounds.width, bounds.height) / 2.0f);
     
-    while (active.size() > 0)
+    int tries = 0;
+    while (active.size() > 0 && tries < 100000)
     {
       int sampleIndex = floor(ofRandom(active.size()));
       glm::vec2 currentSample = samples[active[sampleIndex]];
@@ -105,6 +105,8 @@ public:
       }
       
       if (!candidateAccepted) active.erase(active.begin() + sampleIndex);
+      
+      tries++;
     }
     
     for (auto & point : samples) point += glm::vec2(bounds.x, bounds.y);
@@ -250,7 +252,7 @@ public:
   {
     const int rejectionLimit = 30;
     
-    auto spatialGrid = utils::SpatialGrid2D<int>(bounds.width, bounds.height, minRadius, maxRadius);
+    auto spatialGrid = spatial::SpatialGrid2D<int>(bounds.width, bounds.height, minRadius, maxRadius);
     std::vector<int> activeList(spatialGrid.cellsPerX * spatialGrid.cellsPerY);
     std::vector<glm::vec2> samples;
     

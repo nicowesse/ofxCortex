@@ -1,6 +1,6 @@
 #pragma once
 
-namespace ofxCortex { namespace core { namespace utils {
+namespace ofxCortex { namespace core { namespace spatial {
 
 struct SpatialGridItem {
   SpatialGridItem(int index, float x, float y, float radius) : index(index), position(x, y), radius(radius) {};

@@ -271,6 +271,22 @@ std::vector<ofPolyline> Line::getOffsets(const ofPolyline & source, std::vector<
   return output;
 }
 
+std::vector<ofPolyline> Line::getOffsets(const std::vector<ofPolyline> & sources, std::vector<float> offsets, ClipperLib::JoinType jointype,
+                                     ClipperLib::EndType endtype)
+{
+  std::vector<ofPolyline> output;
+  
+  if (sources.size() == 0) return sources;
+  
+  for (float offset : offsets)
+  {
+    auto lines = Clipper::getOffsets(sources, offset, jointype, endtype);
+    output.insert(output.end(), lines.begin(), lines.end());
+  }
+  
+  return output;
+}
+
 ofPolyline Line::getOffset(const ofPolyline & source, float offset, ClipperLib::JoinType jointype, ClipperLib::EndType endtype)
 {
   if (source.size() == 0) return ofPolyline();
@@ -412,6 +428,35 @@ ofPolyline Line::getSimplifiedPolyline(const ofPolyline& source, float epsilon)
   if (source.isClosed()) simplifiedPolyline.close();
   
   return simplifiedPolyline;
+}
+
+ofPolyline Line::getSubdividedPolyline(const ofPolyline & source, int iterations)
+{
+  bool closed = source.isClosed();
+  iterations = std::max(1, iterations);
+  
+  std::vector<glm::vec3> currentPoints = source.getVertices();
+  std::vector<glm::vec3> subdividedPoints;
+  
+  for (int i = 0; i < iterations; i++)
+  {
+    for (int j = 0; j < currentPoints.size() - !closed; j++)
+    {
+      const glm::vec3 & current = currentPoints[(j + 0) % currentPoints.size()];
+      const glm::vec3 & next =    currentPoints[(j + 1) % currentPoints.size()];
+      
+      subdividedPoints.push_back(current);
+      subdividedPoints.push_back(glm::mix(current, next, 0.5));
+    }
+    if (!closed) subdividedPoints.push_back(currentPoints.back());
+    
+    currentPoints = subdividedPoints;
+    subdividedPoints.clear();
+  }
+  
+  if (closed) currentPoints.push_back(source.getVertices().front());
+  
+  return ofPolyline(currentPoints);
 }
 
 void Line::simplifyRDP(const std::vector<glm::vec3>& points, int startIdx, int endIdx, float epsilon, std::vector<glm::vec3>& simplifiedPoints, bool isClosed)

@@ -8,6 +8,7 @@
 
 #include "ofxCortex/utils/VectorUtils.h"
 #include "ofxCortex/utils/NumberUtils.h"
+#include "ofxCortex/utils/DebugUtils.h"
 
 namespace ofxCortex { namespace core { namespace graphics {
 
@@ -41,6 +42,7 @@ public:
   static ofPath polysToPath(const std::vector<ofPolyline> & polylines);
   
   static std::vector<ofPolyline> getOffsets(const ofPolyline & source, std::vector<float> offsets, ClipperLib::JoinType jointype = ClipperLib::jtSquare, ClipperLib::EndType endtype = ClipperLib::etOpenSquare);
+  static std::vector<ofPolyline> getOffsets(const std::vector<ofPolyline> & sources, std::vector<float> offsets, ClipperLib::JoinType jointype = ClipperLib::jtSquare, ClipperLib::EndType endtype = ClipperLib::etOpenSquare);
   static ofPolyline getOffset(const ofPolyline & source, float offset, ClipperLib::JoinType jointype = ClipperLib::jtSquare, ClipperLib::EndType endtype = ClipperLib::etOpenSquare);
   static void offset(ofPolyline & source, float offset, ClipperLib::JoinType jointype = ClipperLib::jtSquare, ClipperLib::EndType endtype = ClipperLib::etOpenButt);
   
@@ -56,6 +58,9 @@ public:
   
   static void simplifyPolyline(ofPolyline & source, float epsilon = 0.5) { source = getSimplifiedPolyline(source, epsilon); };
   static ofPolyline getSimplifiedPolyline(const ofPolyline& source, float epsilon = 0.5);
+  
+  static void subdividePolyline(ofPolyline & source, int iterations = 1) { source = getSubdividedPolyline(source, iterations); };
+  static ofPolyline getSubdividedPolyline(const ofPolyline & source, int iterations = 1);
   
 private:
   Line() = default;

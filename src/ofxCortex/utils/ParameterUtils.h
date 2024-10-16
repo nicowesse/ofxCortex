@@ -125,9 +125,11 @@ public:
   
   static void linkParameters(ofParameterGroup & primary, ofParameterGroup & subordinate)
   {
+    
     for (std::shared_ptr<ofAbstractParameter> & parameter : subordinate)
     {
       std::string subName = parameter->getName();
+      std::string paramType = parameter->type();
       std::string type = parameter->valueType();
       
       if (!primary.contains(subName)) continue;
@@ -135,7 +137,10 @@ public:
       ofAbstractParameter & primaryParam = primary.get(subName);
       if (primaryParam.valueType() != parameter->valueType()) continue;
       
-      if (type == typeid(float).name()) parameter->cast<float>().makeReferenceTo(primaryParam.cast<float>());
+      ofLogVerbose("Parameters::linkParameters()") << serializeName(*parameter, false) << " (" << type << ")  =>  " << serializeName(primaryParam, true) << " (" << primaryParam.valueType() << ")";
+      
+      if (paramType == typeid(ofParameterGroup).name()) { linkParameters(primaryParam.castGroup(), parameter->castGroup()); }
+      else if (type == typeid(float).name()) parameter->cast<float>().makeReferenceTo(primaryParam.cast<float>());
       else if (type == typeid(int).name()) parameter->cast<int>().makeReferenceTo(primaryParam.cast<int>());
       else if (type == typeid(bool).name()) parameter->cast<bool>().makeReferenceTo(primaryParam.cast<bool>());
       else if (type == typeid(std::string).name()) parameter->cast<std::string>().makeReferenceTo(primaryParam.cast<std::string>());
@@ -144,11 +149,11 @@ public:
     }
   }
   
-  static std::string serializeName(const ofAbstractParameter & parameter)
+  static std::string serializeName(const ofAbstractParameter & parameter, bool skipRoot = true)
   {
     std::vector<std::string> hierarchy = ofxCortex::core::utils::Array::transform<std::string>(parameter.getGroupHierarchyNames(), Parameters::unescape);
     
-    return ofJoinString(std::vector<std::string>(hierarchy.begin() + 1, hierarchy.end()), "::");
+    return ofJoinString(std::vector<std::string>(hierarchy.begin() + skipRoot, hierarchy.end()), "::");
   }
   
   static std::string unescape(const std::string & _str)
@@ -172,7 +177,7 @@ public:
     for (int i = 0; i < level; i++) levelStr << "━";
     
     
-    out << levelStr.str() << "┫" << group.getName() << "\n";
+    out << levelStr.str() << group.getName() << " (group)\n";
     for (const auto & param : group)
     {
       if (param->type() == typeid(ofParameterGroup).name()) {
@@ -180,7 +185,7 @@ public:
       }
       else
       {
-        out << levelStr.str() << "━ " << param->getName() << "\n";
+        out << levelStr.str() << "━ " << param->getName() << " (" << param->valueType() << ")\n";
       }
     }
   };

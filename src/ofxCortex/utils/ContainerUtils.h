@@ -33,13 +33,19 @@ static T randomInVector(const Container & v)
   return *it;
 }
 
+template<typename Container, class T = typename Container::value_type>
+static size_t randomIndex(const Container & v)
+{
+  return rand() % v.size();
+}
+
 ALIAS_TEMPLATE_FUNCTION(sample, randomInVector)
 
 template<typename T>
 T randomWeighted(const std::unordered_map<T, float>& weightedMap) 
 {
-  std::random_device rd;
-  std::mt19937 gen(rd());
+  static std::random_device rd;
+  static std::mt19937 gen(rd());
   
   std::vector<T> elements;
   std::vector<float> probabilities;
@@ -179,9 +185,9 @@ std::vector<size_t> randomIndices(const std::vector<T>& inputVector, size_t n = 
 
 //template<typename T>
 template<typename T, template<typename, typename> class Container, typename Allocator = std::allocator<T>>
-static void appendVector(Container<T, Allocator> & original, Container<T, Allocator> & appending)
+static void appendVector(Container<T, Allocator>& original, Container<T, Allocator>&& appending)
 {
-  original.insert(std::end(original), std::begin(appending), std::end(appending));
+  original.insert(std::end(original), std::make_move_iterator(std::begin(appending)), std::make_move_iterator(std::end(appending)));
 }
 
 ALIAS_TEMPLATE_FUNCTION(append, appendVector)
@@ -195,6 +201,36 @@ static Container<OutputType> transform(const Container<InputType> & v, Function 
 }
 
 ALIAS_TEMPLATE_FUNCTION(map, transform)
+
+template<typename, typename = std::void_t<>>
+struct has_multiplication_operator : std::false_type {};
+
+// Specialization: this will be selected if T * U is a valid expression
+template<typename T>
+struct has_multiplication_operator<T, std::void_t<decltype(std::declval<T&>() * std::declval<T&>())>> : std::true_type {};
+
+// Helper variable template for easier usage
+template<typename T>
+inline constexpr bool has_multiplication_operator_v = has_multiplication_operator<T>::value;
+
+template<typename OutputType, typename InputType, template<typename...> class Container, typename FilterFunction>
+static Container<OutputType> transform_filter(const Container<InputType> & v, FilterFunction func)
+{
+  static_assert(has_multiplication_operator_v<InputType>, "InputType must support multiplication operator");
+  
+  Container<OutputType> output;
+  output.reserve(v.size()); // Reserve space to avoid reallocations
+
+  std::vector<size_t> indices(v.size());
+  std::iota(indices.begin(), indices.end(), 0);
+  
+  std::transform(indices.begin(), indices.end(), std::back_inserter(output), [&v, &func](size_t index) {
+    double t = index / (double)(v.size() - 1);
+    return v[index] * func(t);
+  });
+  
+  return output;
+}
 
 template <typename Container, typename Function>
 static Container filter(const Container& source, const Function & func)
@@ -227,7 +263,7 @@ template<typename T, template <typename, typename...> class Container, typename.
 static T median(const Container<T, Args...> & v)
 {
   auto sorted = v;
-  std::sort(begin(sorted), end(sorted));
+  std::sort(sorted.begin(), sorted.end());
   
   size_t size = v.size();
   
@@ -343,7 +379,7 @@ std::vector<Key> keys(const Map& m)
   return keys;
 }
 
-template<typename Map, typename Value = typename Map::key_type>
+template<typename Map, typename Value = typename Map::value_type>
 std::vector<Value> values(const Map& m)
 {
   std::vector<Value> keys;

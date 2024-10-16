@@ -8,22 +8,35 @@
 
 namespace ofxCortex { namespace core { namespace utils {
 
-class ShapingFunction {
+class ShapingUtils {
 public:
-  ShapingFunction() {};
-  
-  virtual double operator()(double x) = 0;
-  virtual void draw(const ofRectangle & viewport)
+  static void drawFunction(const ofRectangle & viewport, const std::string & label, const std::function<double(double)> & func, float resolution = 2.0)
   {
-    float inset = 12;
-    int steps = viewport.width / 4.0f;
+    drawFunctions(viewport, label, [&](double x) -> std::vector<double> { return { func(x) }; });
+  }
+  
+  static void drawFunctions(const ofRectangle & viewport, const std::string & label, const std::function<std::vector<double>(double)> & func, float resolution = 2.0, float min = 0.0, float max = 1.0)
+  {
+    static std::vector<ofColor> palette = { ofColor::white, ofColor::tomato, ofColor::springGreen, ofColor::magenta, ofColor::cyan, ofColor::lime, ofColor::aqua };
+    const float inset = 16;
+    
+    int steps = viewport.width / resolution;
+    
+    size_t functions = func(0.0).size();
+  
+    std::map<uint8_t, std::vector<float>> evaluated;
+    for (int step = 0; step <= steps; step++)
+    {
+      auto results = func((float) step / steps);
+      for (int i = 0; i < results.size(); i++) evaluated[i].push_back(results[i]);
+    }
     
     ofPushStyle();
     
     ofFill();
     ofSetColor(12);
     ofDrawRectRounded(viewport, 6);
-
+    
     ofNoFill();
     ofSetColor(255, 32);
     ofDrawRectRounded(viewport, 6);
@@ -36,27 +49,43 @@ public:
     ofDrawCircle(viewport.getLeft() + inset, viewport.getTop() + inset, 2);
     ofDrawCircle(viewport.getRight() - inset, viewport.getBottom() - inset, 2);
     
-    ofNoFill();
-    ofSetColor(255);
-    ofBeginShape();
-    for (int i = 0; i <= steps; i++)
+    for (auto & [functionIndex, values] : evaluated)
     {
-      float t = (float) i / steps;
-      float x = ofMap(t, 0, 1, viewport.getLeft() + inset, viewport.getRight() - inset, true);
-      float y = ofMap((*this)(t), 0, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true);
+      const ofColor & c = palette[functionIndex % palette.size()];
+      ofNoFill();
+      ofSetColor(c, functionIndex == 0 ? 255 : 112);
+      ofBeginShape();
+      for (int i = 0; i < values.size(); i++)
+      {
+        float t = (float) i / values.size();
+        float x = ofMap(t, 0, 1, viewport.getLeft() + inset, viewport.getRight() - inset, true);
+        float y = ofMap(values[i], 0, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true);
+        
+        ofVertex(x, y);
+      }
+      ofEndShape();
       
-      ofVertex(x, y);
+      ofFill();
+      ofSetColor(palette[functionIndex % palette.size()], 192);
+      ofDrawCircle(viewport.getLeft() + inset, ofMap(values.front(), 0, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true), 2);
+      ofDrawCircle(viewport.getRight() - inset, ofMap(values.back(), 0, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true), 2);
     }
-    ofEndShape();
     
-    ofFill();
     ofSetColor(128);
-    ofDrawCircle(viewport.getLeft() + inset, ofMap((*this)(0.0), 0, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true), 2);
-    ofDrawCircle(viewport.getRight() - inset, ofMap((*this)(1.0), 0, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true), 2);
-    
-    ofDrawBitmapString(parameters.getName(), viewport.getLeft() + inset + 8, viewport.getTop() + inset + 11 + 4);
+    ofDrawBitmapString(label, viewport.getLeft() + inset + 12, viewport.getTop() + inset + 11 + 4);
     
     ofPopStyle();
+  }
+};
+
+class ShapingFunctionAbstract {
+public:
+  ShapingFunctionAbstract() {};
+  
+  virtual double operator()(double x) = 0;
+  virtual void draw(const ofRectangle & viewport)
+  {
+    ShapingUtils::drawFunction(viewport, parameters.getName(), [this](double x) { return this->operator()(x); });
   }
   
   ofParameterGroup parameters;
@@ -66,7 +95,9 @@ protected:
   
 };
 
-class LinearFunction : public ShapingFunction {
+
+
+class LinearFunction : public ShapingFunctionAbstract {
 public:
   LinearFunction(const std::string & name = "Linear Function") {
     parameters.setName(name);
@@ -75,7 +106,7 @@ public:
   virtual double operator()(double x) override { return x; }
 };
 
-class InvertFunction : public ShapingFunction {
+class InvertFunction : public ShapingFunctionAbstract {
 public:
   InvertFunction(const std::string & name = "Invert Function") {
     parameters.setName(name);
@@ -84,7 +115,7 @@ public:
   virtual double operator()(double x) override { return 1.0 - x; }
 };
 
-class GainFunction : public ShapingFunction {
+class GainFunction : public ShapingFunctionAbstract {
 public:
   GainFunction(const std::string & name = "Gain Function") {
     parameters.setName(name);
@@ -99,11 +130,44 @@ public:
   }
   
 protected:
-  ofParameter<float> k_p { "K", 0.5, 0.0, 8.0 };
+  ofParameter<float> k_p { "Contrast", 0.5, 0.0, 8.0 };
   
 };
 
-class BiasedGainFunction : public ShapingFunction {
+class PulseWidthFunction : public ShapingFunctionAbstract {
+public:
+  PulseWidthFunction() {
+    parameters.setName("Pulse Width Function");
+    parameters.add(start, end);
+  };
+  
+  virtual double operator()(double x) override { return (*this)(x, start.get(), end.get()); }
+  virtual double operator()(double x, double start, double end) {
+    return (x >= start && x <= end);
+  }
+  
+protected:
+  ofParameter<float> start  { "Start",  0.0, 0.0, 1.0 };
+  ofParameter<float> end { "End", 1.0, 0.0, 1.0 };
+  
+};
+
+class ExponentialFunction : public ShapingFunctionAbstract {
+public:
+  ExponentialFunction(const std::string & name = "Exponential Function") {
+    parameters.setName(name);
+    parameters.add(exponent);
+  };
+  
+  virtual double operator()(double x) override { return (*this)(x, exponent.get()); }
+  double operator()(double x, double exponent) { return pow(x, exponent); }
+  
+protected:
+  ofParameter<float> exponent { "Exponent", 2.0, 0.0, 8.0 };
+  
+};
+
+class BiasedGainFunction : public ShapingFunctionAbstract {
 public:
   BiasedGainFunction(const std::string & name = "Biased Gain Function") {
     parameters.setName(name);
@@ -119,7 +183,7 @@ protected:
   
 };
 
-class ParabolaFunction : public ShapingFunction {
+class ParabolaFunction : public ShapingFunctionAbstract {
 public:
   ParabolaFunction(const std::string & name = "Parabola Function") {
     parameters.setName(name);
@@ -134,7 +198,7 @@ protected:
   
 };
 
-class ExpBlendFunction : public ShapingFunction {
+class ExpBlendFunction : public ShapingFunctionAbstract {
 public:
   ExpBlendFunction(const std::string & name = "Exponential Blend Function") {
     parameters.setName(name);
@@ -148,6 +212,7 @@ public:
   
   virtual double operator()(double x, double slope, double shift)
   {
+    slope = ofClamp(slope, -0.99, 0.99);
     double c = 2.0 / (1.0 - slope) - 1.0;
     
     auto f = [&](double x, double n) { return pow(x, c) / pow(n, c - 1.0); };
@@ -161,10 +226,10 @@ protected:
   
 };
 
-class ExpStepFunction : public ShapingFunction {
+class ExpStepFunction : public ShapingFunctionAbstract {
 public:
-  ExpStepFunction() {
-    parameters.setName("Exponential Step Function");
+  ExpStepFunction(const std::string & name = "Exponential Step Function") {
+    parameters.setName(name);
     parameters.add(k_p, n_p);
   };
   
@@ -178,49 +243,90 @@ protected:
   
 };
 
+class SmoothstepFunction : public ShapingFunctionAbstract {
+public:
+  SmoothstepFunction(const std::string & name = "Smoothstep Function") {
+    parameters.setName(name);
+    parameters.add(left_edge, right_edge);
+  };
+  
+  virtual double operator()(double x) override { return (*this)(x, left_edge.get(), right_edge.get()); }
+  virtual double operator()(double x, double left_edge, double right_edge) {
+    x = ofClamp((x - left_edge) / (right_edge - left_edge), 0, 1);
+    return x*x*x/(3.0*x*x-3.0*x+1.0);
+  }
+  
+protected:
+  ofParameter<float> left_edge  { "Left Edge",  0.0, 0.0, 1.0 };
+  ofParameter<float> right_edge { "Right Edge", 1.0, 0.0, 1.0 };
+  
+};
+
+class SineFunction : public ShapingFunctionAbstract {
+public:
+  SineFunction(const std::string & name = "Sine Function") {
+    parameters.setName(name);
+    parameters.add(frequency, offset);
+  };
+  
+  virtual double operator()(double x) override { return (*this)(x, frequency.get(), offset.get()); }
+  virtual double operator()(double x, double f, double o) { return sin(x * TWO_PI * f + offset) * 0.5 + 0.5; }
+  
+protected:
+  ofParameter<float> frequency  { "Frequency (hz)",  1.0, 0.0, 10.0 };
+  ofParameter<float> offset { "Offset", 0.0, 0.0, 1.0 };
+  
+};
+
+class SignedSineFunction : public SineFunction {
+public:
+  SignedSineFunction(const std::string & name = "Signed Sine Function") : SineFunction(name) {};
+  
+  virtual double operator()(double x, double f, double o) { return sin(x * TWO_PI * f + offset); }
+};
+
+class PeriodicSineFunction : public ShapingFunctionAbstract {
+public:
+  PeriodicSineFunction() {
+    parameters.setName("Periodic Sine Function");
+    parameters.add(period, offset);
+  };
+  
+  virtual double operator()(double x) override { return (*this)(x, period.get(), offset.get()); }
+  virtual double operator()(double x, double p, double o) { return sin(x * TWO_PI * (1.0 / p) + offset) * 0.5 + 0.5; }
+  
+protected:
+  ofParameter<float> period  { "Period",  1.0, 0.0, 10.0 };
+  ofParameter<float> offset { "Offset", 0.0, 0.0, 1.0 };
+  
+};
+
+class TriangleFunction : public ShapingFunctionAbstract {
+public:
+  TriangleFunction(const std::string & name = "Triangle Function") {
+    parameters.setName(name);
+  };
+  
+  virtual double operator()(double x) override { return 2.0 * std::min(x, 1.0 - x); }
+};
+
 class Shaping {
 public:
   inline static LinearFunction linear;
   inline static InvertFunction invert;
+  inline static PulseWidthFunction pulseWidth;
+  inline static TriangleFunction triangle;
   inline static GainFunction gain;
   inline static BiasedGainFunction biasedGain;
   inline static ExpBlendFunction expBlend;
   inline static ExpStepFunction expStep;
   inline static ParabolaFunction parabola;
+  inline static SmoothstepFunction smoothstep;
+  inline static SineFunction sine;
+  inline static SignedSineFunction signedSine;
   
   static float signedToUnsigned(float x) { return (x + 1.0) / 2.0; }
   static float unsignedToSigned(float x) { return (x * 2.0) - 1.0; }
-  
-  template<typename T>
-  static T interpolate(const std::vector<T> & values, float t)
-  {
-    if (values.size() == 1 || ofIsFloatEqual(t, 0.0f)) return values[0];
-    if (ofIsFloatEqual(t, 1.0f)) return values[values.size() - 1];
-    
-    float valueT = t * (values.size() - 1);
-    int lower = floor(valueT);
-    int upper = ceil(valueT);
-    float interpolateT = ofClamp(valueT - lower, 0.0, 1.0);
-    
-    return ofInterpolateCosine(values[lower], values[upper], interpolateT);
-  }
-  
-protected:
-  template< typename FwdIter, typename Func >
-  static Func for_each_pair( FwdIter iterStart, FwdIter iterEnd, Func func )
-  {
-    if( iterStart == iterEnd )
-      return func;
-    
-    FwdIter iterNext = iterStart;
-    ++iterNext;
-    
-    for( ; iterNext != iterEnd; ++iterStart, ++iterNext )
-    {
-      func( *iterStart, *iterNext );
-    }
-    return func;
-  }
 };
 
 }}}

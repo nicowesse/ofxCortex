@@ -76,7 +76,7 @@ public:
   // Getters
   const ofColor & getColor(unsigned int index) { return colors[CLAMP(index, 0, colors.size() - 1)]; }
   ofColor getColor(float t, LookupMode mode = LookupMode::LINEAR) {
-    return paletteData.getColor(ofClamp(getLookupValue(t, mode), std::numeric_limits<float>::epsilon(), 1.0 - std::numeric_limits<float>::epsilon()) * paletteData.getWidth(), 0);
+    return ofxCortex::core::utils::interpolate(colors, getLookupValue(t, mode));
   };
   const std::vector<ofColor> & getColors() { return colors; }
   ofColor getRandomColor(float alpha = 1.0f) {
@@ -87,14 +87,32 @@ public:
     return c;
   }
   
+  void addColor(const ofColor & color) { colors.push_back(color); }
+  void addColors(const std::vector<ofColor> & _colors) { colors.insert(colors.end(), _colors.begin(), _colors.end()); }
+  
   static Palette blackToWhite() { return Palette({ ofColor::black, ofColor::white }); }
   static Palette whiteToBlack() { return Palette({ ofColor::white, ofColor::black }); }
-  static Palette rainbow(int steps = 6) { auto colors = ofxCortex::core::utils::Array::constructVector<ofColor>(steps, [](int i, float t) { return ofColor::fromHsb(t * 255.0, 255.0, 255.0); }); return Palette(colors); }
+  static Palette rainbow(int steps = 6) { auto colors = ofxCortex::core::utils::Array::constructVector<ofColor>(steps, [](int i, float t) { return ofColor::fromHsb(t, 1.0, 1.0); }); return Palette(colors); }
   static Palette dayCycle() { return Palette({ ofColor::fromHex(0x040b3c), ofColor::fromHex(0x012459), ofColor::fromHex(0x003972), ofColor::fromHex(0x003972), ofColor::fromHex(0x004372), ofColor::fromHex(0x004372), ofColor::fromHex(0x016792), ofColor::fromHex(0x07729f), ofColor::fromHex(0x12a1c0), ofColor::fromHex(0x74d4cc), ofColor::fromHex(0xefeebc), ofColor::fromHex(0xfee154), ofColor::fromHex(0xfdc352), ofColor::fromHex(0xffac6f), ofColor::fromHex(0xfda65a), ofColor::fromHex(0xfd9e58), ofColor::fromHex(0xf18448), ofColor::fromHex(0xf06b7e), ofColor::fromHex(0xca5a92), ofColor::fromHex(0x5b2c83), ofColor::fromHex(0x371a79), ofColor::fromHex(0x28166b), ofColor::fromHex(0x192861), ofColor::fromHex(0x040b3c) }); }
   
   
   // Rendering
-  void drawGradient(float x = 0.0, float y = 0.0, float w = 100.0, float h = 24.0) { paletteFBO.draw(x, y, w, h); }
+  void drawGradient(float x = 0.0, float y = 0.0, float w = 100.0, float h = 24.0) 
+  {
+    paletteFBO.draw(x, y, w, h);
+    
+//    vector<float> data = ofxCortex::core::utils::Array::accumulate<std::vector<float>>(colors, [](std::vector<float> & carry, ofColor value) {
+//      std::vector<float> color { value.r / 255.0f, value.g / 255.0f, value.b / 255.0f, value.a / 255.0f };
+//      carry.insert(carry.end(), color.begin(), color.end());
+//      return carry;
+//    });
+//    
+//    getShader().begin();
+//    getShader().setUniform4fv("u_colors", data.data());
+//    getShader().setUniform1i("u_colorsSize", colors.size());
+//    ofxCortex::core::utils::Graphics::drawTexCoordRectangle(x, y, w, h);
+//    getShader().end();
+  }
   void drawColors(float x = 0.0, float y = 0.0, float w = 100.0, float h = 24.0)
   {
     float cellW = w / colors.size();
@@ -254,8 +272,6 @@ protected:
     
     if (!shader.isLoaded())
     {
-      std::cout << "Setup Palette-shader" << std::endl;
-      
       string vertexShader = "#version 150\n";
       string fragShader = "#version 150\n";
       
@@ -279,6 +295,8 @@ protected:
       
       fragShader += STRINGIFY
       (
+       const float PI = 3.141592;
+       
        float luma(vec3 color) {
          return dot(color, vec3(0.299, 0.587, 0.114));
        }
@@ -287,13 +305,33 @@ protected:
          return dot(color.rgb, vec3(0.299, 0.587, 0.114));
        }
        
+       vec4 interpolateCosine(const vec4 y1, const vec4 y2, float pct){
+         float pct2 = (1.0 - cos(pct * PI)) / 2.0;
+         return (y1 * (1.0 - pct2) + y2 * pct2);
+       }
+       
+       
+       
        in vec4 colorVarying;
        in vec2 texCoordVarying;
        out vec4 outputColor;
        
-       uniform sampler2DRect tex0;
-       uniform sampler2DRect palette;
+       uniform sampler2D tex0;
+       uniform sampler2D palette;
        uniform vec2 u_paletteSize;
+       
+      uniform vec4 u_colors[32];
+       uniform int u_colorSize;
+       
+       vec4 interpolateColor(float t)
+       {
+         float valueT = t * (u_colorSize - 1);
+         int lower = int(floor(valueT));
+         int upper = int(ceil(valueT));
+         float interpolateT = valueT - lower;
+         
+         return interpolateCosine(u_colors[lower], u_colors[upper], interpolateT);
+       }
        
        uniform vec2 u_resolution;
        
@@ -305,7 +343,7 @@ protected:
          float brightness = luma(sample);
          vec4 paletteColor = texture(palette, vec2(brightness, 0) * u_paletteSize);
          
-         outputColor = paletteColor;
+         outputColor = vec4(st.x, st.y, 0.0, 1.0);
        }
        );
       

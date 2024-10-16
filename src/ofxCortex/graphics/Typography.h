@@ -109,6 +109,11 @@ public:
   static void draw(const ofTrueTypeFont & font, const std::string & text, const glm::vec2 & pos, float fontSize, ofAlignHorz horizontalAlign = OF_ALIGN_HORZ_LEFT, ofAlignVert verticalAlign = OF_ALIGN_VERT_TOP);
   static void draw(const Font & font, const std::string & text, const glm::vec2 & pos, ofAlignHorz horizontalAlign = OF_ALIGN_HORZ_LEFT, ofAlignVert verticalAlign = OF_ALIGN_VERT_TOP);
   
+  static std::vector<glm::vec2> getStringAsPoints(const ofTrueTypeFont & font, const std::string & text, const glm::vec2 & pos, float fontSize, ofAlignHorz horizontalAlign = OF_ALIGN_HORZ_LEFT, ofAlignVert verticalAlign = OF_ALIGN_VERT_TOP);
+  static std::vector<glm::vec2> getStringAsPoints(const Font & font, const std::string & text, const glm::vec2 & pos, ofAlignHorz horizontalAlign = OF_ALIGN_HORZ_LEFT, ofAlignVert verticalAlign = OF_ALIGN_VERT_TOP);
+  
+  static std::vector<ofPolyline> getStringAsLines(const ofTrueTypeFont & font, const std::string & text, const glm::vec2 & pos, float fontSize, ofAlignHorz horizontalAlign = OF_ALIGN_HORZ_LEFT, ofAlignVert verticalAlign = OF_ALIGN_VERT_TOP);
+  
 #pragma mark - Type-on-Path
   struct TypeOnPathSettings : public FontSettings {
     TypeOnPathSettings(float size, float offset = 0.0f, bool repeat = false, bool wrap = false, bool flipX = false, bool flipY = false)

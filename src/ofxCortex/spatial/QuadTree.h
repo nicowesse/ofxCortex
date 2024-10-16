@@ -2,7 +2,7 @@
 
 #include "ofMain.h"
 
-namespace ofxCortex { namespace core { namespace utils {
+namespace ofxCortex { namespace core { namespace spatial {
 
 constexpr size_t MAX_QUADTREE_DEPTH = 8;
 
