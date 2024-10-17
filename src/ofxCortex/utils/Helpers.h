@@ -15,9 +15,9 @@
 namespace ofxCortex { namespace core { namespace utils {
 
 
-static ofRectangle getImageRectangle(const ofBaseDraws & image) { return ofRectangle(0, 0, image.getWidth(), image.getHeight()); }
+inline static ofRectangle getImageRectangle(const ofBaseDraws & image) { return ofRectangle(0, 0, image.getWidth(), image.getHeight()); }
 
-static ofRectangle getBitmapStringBoundingBox(const std::string & text)
+inline static ofRectangle getBitmapStringBoundingBox(const std::string & text)
 {
   std::vector<std::string> lines = ofSplitString(text, "\n");
   int maxLineLength = 0;
@@ -43,6 +43,9 @@ static ofRectangle getBitmapStringBoundingBox(const std::string & text)
   return ofRectangle(0, 0, width, height);
 }
 
+inline static float getBitmapStringWidth(const std::string & text) { return getBitmapStringBoundingBox(text).width; }
+inline static float getBitmapStringHeight(const std::string & text) { return getBitmapStringBoundingBox(text).height; }
+
 
 inline static float getNormalizedTime(float hours = ofGetHours(), float minutes = ofGetMinutes(), float seconds = ofGetSeconds())
 {
@@ -57,7 +60,7 @@ inline static float getNormalizedTime(float hours = ofGetHours(), float minutes 
 #pragma mark - String
 namespace String {
 
-static std::string toTitleCase(const std::string& str)
+inline static std::string toTitleCase(const std::string& str)
 {
   std::string result = str;
   bool makeUpper = true; // Flag to indicate the next character should be capitalized

@@ -74,12 +74,12 @@ static void drawGrid(const glm::vec2 & position, float cellW, float cellH, int c
   ofPopStyle();
 }
 
-static void drawGrid(const ofRectangle & bounds, int columns, int rows, ofColor lineColor = ofColor(255), bool drawCenters = false)
+inline static void drawGrid(const ofRectangle & bounds, int columns, int rows, ofColor lineColor = ofColor(255), bool drawCenters = false)
 {
   drawGrid(bounds.position, bounds.width / columns, bounds.height / rows, columns, rows, lineColor, drawCenters);
 }
 
-static void drawPlane(float alpha = 0.1f)
+inline static void drawPlane(float alpha = 0.1f, int steps = 25)
 {
   ofPushMatrix();
   {
@@ -87,10 +87,10 @@ static void drawPlane(float alpha = 0.1f)
     ofPushStyle();
     {
       ofSetColor(255, 255 * alpha);
-      ofDrawGridPlane(1000, 25);
+      ofDrawGridPlane(1000, steps);
       
       ofSetColor(255, 255 * alpha * 0.5);
-      ofDrawGridPlane(100, 250);
+      ofDrawGridPlane(100, steps * 10);
     }
     ofPopStyle();
   }
