@@ -246,9 +246,9 @@ ofPath Line::polysToPath(const std::vector<ofPolyline> & polylines) {
   for(int outline = 0; outline < polylines.size(); ++outline) {
     for (int i = 0; i < polylines[outline].getVertices().size(); i++){
       if ( i == 0 )
-        path.moveTo(polylines[outline].getVertices()[i].x,polylines[outline].getVertices()[i].y);
+        path.moveTo(polylines[outline].getVertices()[i].x,polylines[outline].getVertices()[i].y, polylines[outline].getVertices()[i].z);
       else
-        path.lineTo(polylines[outline].getVertices()[i].x,polylines[outline].getVertices()[i].y);
+        path.lineTo(polylines[outline].getVertices()[i].x,polylines[outline].getVertices()[i].y, polylines[outline].getVertices()[i].z);
     }
     if (polylines[outline].isClosed()) path.close();
   }
@@ -289,7 +289,7 @@ std::vector<ofPolyline> Line::getOffsets(const std::vector<ofPolyline> & sources
 
 ofPolyline Line::getOffset(const ofPolyline & source, float offset, ClipperLib::JoinType jointype, ClipperLib::EndType endtype)
 {
-  if (source.size() == 0) return ofPolyline();
+  if (source.size() == 0) return source;
   
   auto lines = getOffsets(source, std::vector<float>{ offset }, jointype, endtype);
   

@@ -28,6 +28,35 @@ inline static double floorToNearest(double value, double multiple)
 
 inline static unsigned long modulo(int a, int b) { return (b + (a % b)) % b; }
 
+//template <typename T>
+//T wrappedDistance(T a, T b, T length) {
+//    static_assert(std::is_arithmetic<T>::value, "wrappedDistance requires a numeric type");
+//    
+//    T dist = std::fmod(b - a + length / T(2), length) - length / T(2);
+//    if (dist < T(0)) {
+//        dist += length;
+//    }
+//    return dist;
+//}
+
+//template<typename T>
+//static T wrappedDistance(T a, T b, T length)
+//{
+//  return modulo(a - b, length);
+//}
+
+template<typename T>
+static T wrappedDistance(T a, T b, T length) {
+  // Calculate the direct distance (clockwise)
+  int directDistance = std::abs((int)(b - a));
+  
+  // Calculate the wrapped distance (counterclockwise)
+  int wrappedDistance = length - directDistance;
+  
+  // Return the minimum of the two distances
+  return std::min(directDistance, wrappedDistance);
+}
+
 template<typename T>
 inline static double normalizeIndex(size_t index, const std::vector<T> & v) { return (double) index / (v.size() - 1); }
 
@@ -44,6 +73,139 @@ inline static T gradientDescent(T initialValue, std::function<T(T)> gradientFunc
   }
   
   return value;
+}
+
+template<typename T>
+inline static void generatePartitions(const std::vector<T>& set, size_t idx, std::vector<std::set<T>>& currentPartition, std::vector<std::vector<std::set<T>>>& allPartitions) {
+    if (idx == set.size()) {
+        // When all elements have been assigned, store the current partition
+        allPartitions.push_back(currentPartition);
+        return;
+    }
+
+    // Try to add the current element (set[idx]) to each subset in currentPartition
+    size_t n = currentPartition.size();
+    for (size_t i = 0; i < n; ++i) {
+        currentPartition[i].insert(set[idx]);
+        generatePartitions(set, idx + 1, currentPartition, allPartitions);
+        currentPartition[i].erase(set[idx]);  // Backtrack
+    }
+
+    // Or create a new subset with the current element
+    currentPartition.push_back({set[idx]});
+    generatePartitions(set, idx + 1, currentPartition, allPartitions);
+    currentPartition.pop_back();  // Backtrack
+}
+
+template<typename T>
+inline static std::vector<std::vector<std::set<T>>> getPartitions(const std::vector<T>& set)
+{
+  std::vector<std::vector<std::set<T>>> allPartitions;
+  
+  std::vector<std::set<T>> currentPartition;
+  generatePartitions(set, 0, currentPartition, allPartitions);
+  
+  return allPartitions;
+}
+
+template <typename T>
+std::vector<std::vector<std::pair<T, T>>> getUniquePairs(std::vector<T> input)
+{
+  std::vector<std::vector<std::pair<T, T>>> result;
+  
+  if (input.empty()) return result;
+  
+  // If the size of input is odd, it's impossible to form distinct pairs
+  if (input.size() % 2 != 0) {
+    ofLogWarning("ofxCortex::core::utils::getUniquePairs") << "Input size is not even.";
+    return result;
+  }
+  
+  std::sort(input.begin(), input.end());
+  
+  // Generate all permutations
+  do {
+    std::vector<std::pair<T, T>> currentPairs;
+    
+    // Form pairs from the permutation
+    size_t i = 0;
+    for (; i + 1 < input.size(); i += 2) {
+      currentPairs.emplace_back(input[i], input[i + 1]);
+    }
+    
+    // Handle the odd unpaired element
+    if (i < input.size()) {
+      // Add the last unpaired element in a way that the caller can recognize
+      currentPairs.emplace_back(input[i], T{}); // T{} represents the unpaired element
+    }
+    
+    result.push_back(currentPairs);
+    
+  } while (std::next_permutation(input.begin(), input.end()));
+  
+  return result;
+}
+
+template <typename T>
+void backtrackPairs(
+    const std::vector<T>& input,
+    std::vector<std::pair<T, T>>& currentPairs,
+    std::vector<std::vector<std::pair<T, T>>>& results,
+    std::vector<bool>& used,
+    int unpairedIdx = -1) {
+
+    // Base case: all elements are used
+    if (currentPairs.size() * 2 + (unpairedIdx != -1 ? 1 : 0) == input.size()) {
+        results.push_back(currentPairs);
+        return;
+    }
+
+    // Find the first unused element
+    int firstUnused = -1;
+    for (size_t i = 0; i < input.size(); ++i) {
+        if (!used[i]) {
+            firstUnused = i;
+            break;
+        }
+    }
+
+    // Handle unpaired element if needed
+    if (unpairedIdx == -1 && input.size() % 2 != 0) {
+        unpairedIdx = firstUnused;
+        used[firstUnused] = true;
+        backtrackPairs(input, currentPairs, results, used, unpairedIdx);
+        used[firstUnused] = false;
+        return;
+    }
+
+    // Pair the first unused element with every other unused element
+    used[firstUnused] = true;
+    for (size_t j = firstUnused + 1; j < input.size(); ++j) {
+        if (!used[j]) {
+            // Pair firstUnused and j
+            currentPairs.emplace_back(input[firstUnused], input[j]);
+            used[j] = true;
+
+            // Recurse
+            backtrackPairs(input, currentPairs, results, used, unpairedIdx);
+
+            // Backtrack
+            currentPairs.pop_back();
+            used[j] = false;
+        }
+    }
+    used[firstUnused] = false;
+}
+
+// Wrapper function
+template <typename T>
+inline static std::vector<std::vector<std::pair<T, T>>> generatePairCombinations(const std::vector<T>& input) {
+    std::vector<std::vector<std::pair<T, T>>> results;
+    std::vector<std::pair<T, T>> currentPairs;
+    std::vector<bool> used(input.size(), false);
+
+    backtrackPairs(input, currentPairs, results, used);
+    return results;
 }
 
 class TimeIncrementer {

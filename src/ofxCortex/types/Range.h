@@ -10,9 +10,9 @@ public:
   float to;
   float max;
   
-  Range (float from, float to, float min, float max) : min(MIN(min, from)), from(from), to(to), max(MAX(max, to)) {}
-  Range (float from, float to) : Range(from, from, to, to) {}
-  Range () : Range(0, 1, 0, 1) {}
+  Range(float from, float to, float min, float max) : min(std::min(min, from)), from(from), to(to), max(std::max(max, to)) {}
+  Range(float from, float to) : Range(from, from, to, to) {}
+  Range() : Range(0, 1, 0, 1) {}
   
   Range(const Range &other) : min(other.min), from(other.from), to(other.to), max(other.max) {}
   

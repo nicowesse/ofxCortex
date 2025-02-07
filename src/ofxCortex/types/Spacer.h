@@ -7,16 +7,13 @@ class Spacer
 public:
   int rows;
   
+public:
   Spacer(int rows = 1) : rows(rows) {};
-  
   Spacer(const Spacer &other) : rows(other.rows) {}
   
   Spacer& operator= (const Spacer &other)
   {
-    if (this != &other)
-    {
-      this->rows = other.rows;
-    }
+    if (this != &other) { this->rows = other.rows; }
     return *this;
   }
   
@@ -29,7 +26,6 @@ public:
   friend std::istream& operator>> (std::istream &is, Spacer &spacer)
   {
     is >> spacer.rows;
-    
     return is;
   }
 };

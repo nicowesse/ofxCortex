@@ -10,7 +10,7 @@ namespace Graphics {
 
 inline static glm::vec2 randomInRectangle(const ofRectangle & rect) { return { (int) ofRandom(rect.getLeft(), rect.getRight()), (int) ofRandom(rect.getTop(), rect.getBottom()) }; }
 
-static void drawTexCoordRectangle(float x = 0.0f, float y = 0.0f, float w = 1.0f, float h = 1.0f)
+inline static void drawTexCoordRectangle(float x = 0.0f, float y = 0.0f, float w = 1.0f, float h = 1.0f)
 {
   static ofMesh mesh;
   
@@ -40,11 +40,11 @@ static void drawTexCoordRectangle(float x = 0.0f, float y = 0.0f, float w = 1.0f
   ofPopMatrix();
 }
 
-static void drawTexCoordRectangle(const ofRectangle & rect) { drawTexCoordRectangle(rect.x, rect.y, rect.width, rect.height); }
+inline static void drawTexCoordRectangle(const ofRectangle & rect) { drawTexCoordRectangle(rect.x, rect.y, rect.width, rect.height); }
 
-static void drawTexCoordRectangle(const ofBaseDraws & image) { drawTexCoordRectangle(0, 0, image.getWidth(), image.getHeight()); }
+inline static void drawTexCoordRectangle(const ofBaseDraws & image) { drawTexCoordRectangle(0, 0, image.getWidth(), image.getHeight()); }
 
-static ofMesh getGradientMesh(const std::vector<ofColor> & colors, float w = 1.0, float h = 1.0)
+inline static ofMesh getGradientMesh(const std::vector<ofColor> & colors, float w = 1.0, float h = 1.0)
 {
   ofMesh mesh;
   mesh.setMode(OF_PRIMITIVE_TRIANGLE_STRIP);

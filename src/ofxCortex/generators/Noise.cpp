@@ -377,7 +377,8 @@ ofParameterGroup Noise::getParameters()
 
 #pragma mark - PerlinNoise
 
-double PerlinNoise::getNoise(const glm::vec3 & sample, PerlinNoise::Settings settings)
+
+double PerlinNoise::sampleNoise(const glm::vec3 & sample, PerlinNoise::Settings settings)
 {
   settings.scale = glm::max(settings.scale, glm::vec3(0.0001));
   settings.octaves = MAX(settings.octaves, 1);
@@ -403,15 +404,10 @@ double PerlinNoise::getNoise(const glm::vec3 & sample, PerlinNoise::Settings set
   return utils::Shaping::biasedGain(noiseHeight / maxValue, settings.contrast, settings.contrastBias);
 }
 
-double PerlinNoise::getNoise(const glm::vec3 &sample, const ofParameterGroup &parameters)
-{
-  PerlinNoise::Settings settings = settingsFromParameters(parameters);
-  return getNoise(sample, settings);
-}
-
-double PerlinNoise::getNoise(const glm::vec3 & sample, float scale, float contrast, float contrastBias, float details, float roughness, int octaves, int seed)
+double PerlinNoise::sampleNoise(const glm::vec3 & sample, const glm::vec3 & scale, float contrast, float contrastBias, float details, float roughness, int octaves, int seed)
 {
   PerlinNoise::Settings settings;
+  settings.scale = glm::vec3(scale);
   settings.seed = seed;
   settings.contrast = contrast;
   settings.contrastBias = contrastBias;
@@ -419,7 +415,7 @@ double PerlinNoise::getNoise(const glm::vec3 & sample, float scale, float contra
   settings.roughness = roughness;
   settings.octaves = octaves;
   
-  return getNoise(sample, settings);
+  return sampleNoise(sample, settings);
 }
 
 void PerlinNoise::begin(const glm::vec2 & resolution, const glm::vec3 & offset, const PerlinNoise::Settings & settings)
@@ -494,64 +490,64 @@ static const string DETAILS_NAME = "Details";
 static const string ROUGHNESS_NAME = "Roughness";
 static const string OCTAVES_NAME = "Octaves";
 
-void PerlinNoise::settingsFromParameters(PerlinNoise::Settings &settings, const ofParameterGroup &parameters)
-{
-  if (!parameters.contains(PARAMETER_GROUP_NAME)) return;
-  
-  ofParameterGroup noiseParameters = parameters.getGroup(PARAMETER_GROUP_NAME);
-  
-  settings.seed = noiseParameters.get<int>(SEED_NAME).get();
-  settings.scale = glm::vec3(noiseParameters.get<float>(SCALE_NAME).get());
-  
-  settings.contrast = noiseParameters.get<float>(CONTRAST_NAME).get();
-  settings.contrastBias = noiseParameters.get<float>(CONTRAST_BIAS_NAME).get();
-  
-  settings.details = noiseParameters.get<float>(DETAILS_NAME).get();
-  settings.roughness = noiseParameters.get<float>(ROUGHNESS_NAME).get();
-  settings.octaves = noiseParameters.get<int>(OCTAVES_NAME).get();
-}
-
-PerlinNoise::Settings PerlinNoise::settingsFromParameters(const ofParameterGroup &parameters)
-{
-  PerlinNoise::Settings settings;
-  settingsFromParameters(settings, parameters);
-  return settings;
-}
-
-ofParameterGroup PerlinNoise::addParameters(ofParameterGroup &parameters)
-{
-  ofParameter<int> seed(SEED_NAME, 80085, 1, 100000);
-  ofParameter<float> scale(SCALE_NAME, 40.0f, 1.0f, 5000.0f);
-  ofParameter<float> contrast(CONTRAST_NAME, 0.5f, 0.0f, 10.0f);
-  ofParameter<float> contrastBias(CONTRAST_BIAS_NAME, 0.5f, 0.0f, 1.0f);
-  
-  
-  ofParameter<float> details(DETAILS_NAME, 0.5f, 0.0f, 1.0f);
-  ofParameter<float> roughness(ROUGHNESS_NAME, 1.5f, 1.0f, 2.0f);
-  ofParameter<int> octaves(OCTAVES_NAME, 3, 1, 10);
-  
-  ofParameterGroup noiseGroup{
-    PARAMETER_GROUP_NAME,
-    seed,
-    scale,
-    contrast,
-    contrastBias,
-    octaves,
-    details,
-    roughness,
-  };
-  
-  parameters.add(noiseGroup);
-  
-  return noiseGroup;
-}
-
-ofParameterGroup PerlinNoise::getParameters()
-{
-  ofParameterGroup parameters;
-  addParameters(parameters);
-  return parameters;
-}
+//void PerlinNoise::settingsFromParameters(PerlinNoise::Settings &settings, const ofParameterGroup &parameters)
+//{
+//  if (!parameters.contains(PARAMETER_GROUP_NAME)) return;
+//  
+//  ofParameterGroup noiseParameters = parameters.getGroup(PARAMETER_GROUP_NAME);
+//  
+//  settings.seed = noiseParameters.get<int>(SEED_NAME).get();
+//  settings.scale = glm::vec3(noiseParameters.get<float>(SCALE_NAME).get());
+//  
+//  settings.contrast = noiseParameters.get<float>(CONTRAST_NAME).get();
+//  settings.contrastBias = noiseParameters.get<float>(CONTRAST_BIAS_NAME).get();
+//  
+//  settings.details = noiseParameters.get<float>(DETAILS_NAME).get();
+//  settings.roughness = noiseParameters.get<float>(ROUGHNESS_NAME).get();
+//  settings.octaves = noiseParameters.get<int>(OCTAVES_NAME).get();
+//}
+//
+//PerlinNoise::Settings PerlinNoise::settingsFromParameters(const ofParameterGroup &parameters)
+//{
+//  PerlinNoise::Settings settings;
+//  settingsFromParameters(settings, parameters);
+//  return settings;
+//}
+//
+//ofParameterGroup PerlinNoise::addParameters(ofParameterGroup &parameters)
+//{
+//  ofParameter<int> seed(SEED_NAME, 80085, 1, 100000);
+//  ofParameter<float> scale(SCALE_NAME, 40.0f, 1.0f, 5000.0f);
+//  ofParameter<float> contrast(CONTRAST_NAME, 0.5f, 0.0f, 10.0f);
+//  ofParameter<float> contrastBias(CONTRAST_BIAS_NAME, 0.5f, 0.0f, 1.0f);
+//  
+//  
+//  ofParameter<float> details(DETAILS_NAME, 0.5f, 0.0f, 1.0f);
+//  ofParameter<float> roughness(ROUGHNESS_NAME, 1.5f, 1.0f, 2.0f);
+//  ofParameter<int> octaves(OCTAVES_NAME, 3, 1, 10);
+//  
+//  ofParameterGroup noiseGroup{
+//    PARAMETER_GROUP_NAME,
+//    seed,
+//    scale,
+//    contrast,
+//    contrastBias,
+//    octaves,
+//    details,
+//    roughness,
+//  };
+//  
+//  parameters.add(noiseGroup);
+//  
+//  return noiseGroup;
+//}
+//
+//ofParameterGroup PerlinNoise::getParameters()
+//{
+//  ofParameterGroup parameters;
+//  addParameters(parameters);
+//  return parameters;
+//}
 
 ofShader & PerlinNoise::_getPerlinShader()
 {

@@ -98,13 +98,18 @@ inline static void drawArrow(const glm::vec2 & a, const glm::vec2 & b, bool dash
   drawLine(a, b, 4.0 * dashed, 4.0, Cap::NONE, Cap::ARROW);
 }
 
-inline static void drawLabeledLine(const glm::vec2 & a, const glm::vec2 & b, const std::string & label, bool dashed = false, Cap startCap = Cap::NONE, Cap endCap = Cap::ARROW)
+inline static void drawLabeledLine(const glm::vec2 & a, const glm::vec2 & b, const std::string & label, bool dashed = false, Cap startCap = Cap::NONE, Cap endCap = Cap::NONE)
 {
   glm::vec2 dir { b - a };
   glm::vec2 mid = glm::mix(a, b, 0.5);
   
   drawLine(a, b, 4 * dashed, 4, startCap, endCap);
   ofDrawBitmapString(label, mid.x + label.length() * 8 * -0.5 - 1, mid.y + 4);
+}
+
+inline static void drawLabeledArrow(const glm::vec2 & a, const glm::vec2 & b, const std::string & label, bool dashed = false)
+{
+  drawLabeledLine(a, b, label, dashed, Cap::NONE, Cap::ARROW);
 }
 
 inline static void drawCircle(const glm::vec2 & P, float r, float dash = 0.0)
@@ -199,15 +204,15 @@ inline static void drawAxis(const glm::vec3 & position = glm::vec3(0), float sca
       
       ofSetColor(ofColor::tomato);
       ofDrawArrow(glm::vec3(0, 0, 0), glm::vec3(1, 0, 0), 0.05);
-      ofDrawBitmapString("X", 1.1, -0.025, -0.025);
+      ofDrawBitmapString("+X", 1.1, -0.025, -0.025);
       
       ofSetColor(ofColor::springGreen);
       ofDrawArrow(glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), 0.05);
-      ofDrawBitmapString("Y", 0, 1.1, 0);
+      ofDrawBitmapString("+Y", 0, 1.1, 0);
       
       ofSetColor(ofColor::dodgerBlue);
       ofDrawArrow(glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), 0.05);
-      ofDrawBitmapString("Z", -0.025, -0.025, 1.1);
+      ofDrawBitmapString("+Z", -0.025, -0.025, 1.1);
       
       ofSetColor(ofColor::black);
       ofDrawSphere(0.05);
@@ -257,7 +262,7 @@ inline static void drawGrid(const ofRectangle & bounds, int columns, int rows, o
   drawGrid(bounds.position, bounds.width / columns, bounds.height / rows, columns, rows, lineColor, drawCenters);
 }
 
-inline static void drawPlane(float alpha = 0.1f)
+inline static void drawPlane(float alpha = 0.1f, int divisions = 25)
 {
   ofPushMatrix();
   {
@@ -265,10 +270,10 @@ inline static void drawPlane(float alpha = 0.1f)
     ofPushStyle();
     {
       ofSetColor(255, 255 * alpha);
-      ofDrawGridPlane(1000, 25);
+      ofDrawGridPlane(1000, divisions);
       
       ofSetColor(255, 255 * alpha * 0.5);
-      ofDrawGridPlane(100, 250);
+      ofDrawGridPlane(100, divisions * 10);
     }
     ofPopStyle();
   }
@@ -277,8 +282,8 @@ inline static void drawPlane(float alpha = 0.1f)
   ofPushStyle();
   {
     ofSetColor(255, 255 * alpha * 1.5);
-    ofDrawLine(-100 * 25, 1, 0, 100 * 25, 1, 0);
-    ofDrawLine(0, 1, -100 * 25, 0, 1, 100 * 25);
+    ofDrawLine(-100 * divisions, 0.1, 0, 100 * divisions, 0.1, 0);
+    ofDrawLine(0, 0.1, -100 * divisions, 0, 0.1, 100 * divisions);
   }
   ofPopStyle();
 }

@@ -5,6 +5,9 @@
 #include "ofGraphics.h"
 #include "ofMath.h"
 #include "ofParameterGroup.h"
+#include "ofJson.h"
+#include "ofxCortex/types/Plot.h"
+//#include "ofxCortex/core/Serialization.h"
 
 namespace ofxCortex { namespace core { namespace utils {
 
@@ -12,10 +15,10 @@ class ShapingUtils {
 public:
   static void drawFunction(const ofRectangle & viewport, const std::string & label, const std::function<double(double)> & func, float resolution = 2.0)
   {
-    drawFunctions(viewport, label, [&](double x) -> std::vector<double> { return { func(x) }; });
+    drawFunctions(viewport, std::vector<std::string>{ label }, [&](double x) -> std::vector<double> { return { func(x) }; });
   }
   
-  static void drawFunctions(const ofRectangle & viewport, const std::string & label, const std::function<std::vector<double>(double)> & func, float resolution = 2.0, float min = 0.0, float max = 1.0)
+  static void drawFunctions(const ofRectangle & viewport, const std::vector<std::string> & labels, const std::function<std::vector<double>(double)> & func, float resolution = 2.0, float min = 0.0, float max = 1.0)
   {
     static std::vector<ofColor> palette = { ofColor::white, ofColor::tomato, ofColor::springGreen, ofColor::magenta, ofColor::cyan, ofColor::lime, ofColor::aqua };
     const float inset = 16;
@@ -59,7 +62,7 @@ public:
       {
         float t = (float) i / values.size();
         float x = ofMap(t, 0, 1, viewport.getLeft() + inset, viewport.getRight() - inset, true);
-        float y = ofMap(values[i], 0, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true);
+        float y = ofMap(values[i], min, max, viewport.getBottom() - inset, viewport.getTop() + inset, true);
         
         ofVertex(x, y);
       }
@@ -67,12 +70,14 @@ public:
       
       ofFill();
       ofSetColor(palette[functionIndex % palette.size()], 192);
-      ofDrawCircle(viewport.getLeft() + inset, ofMap(values.front(), 0, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true), 2);
-      ofDrawCircle(viewport.getRight() - inset, ofMap(values.back(), 0, 1, viewport.getBottom() - inset, viewport.getTop() + inset, true), 2);
+      ofDrawCircle(viewport.getLeft() + inset, ofMap(values.front(), min, max, viewport.getBottom() - inset, viewport.getTop() + inset, true), 2);
+      ofDrawCircle(viewport.getRight() - inset, ofMap(values.back(), min, max, viewport.getBottom() - inset, viewport.getTop() + inset, true), 2);
+      
+      ofSetColor(c, 128);
+      ofDrawBitmapString(labels[functionIndex], viewport.getLeft() + inset + 12, viewport.getTop() + inset + 11 + 4 + (functionIndex * 14));
     }
     
-    ofSetColor(128);
-    ofDrawBitmapString(label, viewport.getLeft() + inset + 12, viewport.getTop() + inset + 11 + 4);
+    
     
     ofPopStyle();
   }
@@ -80,19 +85,46 @@ public:
 
 class ShapingFunctionAbstract {
 public:
-  ShapingFunctionAbstract() {};
+  explicit ShapingFunctionAbstract(const std::string & name = "Shaping Function") : parameters(name) {
+    ofParameter<ofxCortex::core::types::Plot> plotter { "Plot", ofxCortex::core::types::Plot([this](float x){ return (*this)((double)x); }) };
+    parameters.add(plotter);
+  }
   
-  virtual double operator()(double x) = 0;
+  // Virtual destructor (essential for abstract classes)
+  virtual ~ShapingFunctionAbstract() = default;
+  
+  // Copy operations - defaulted but declared
+  ShapingFunctionAbstract(const ShapingFunctionAbstract&) = default;
+  ShapingFunctionAbstract& operator=(const ShapingFunctionAbstract&) = default;
+
+  // Move operations
+  ShapingFunctionAbstract(ShapingFunctionAbstract&&) noexcept = default;
+  ShapingFunctionAbstract& operator=(ShapingFunctionAbstract&&) noexcept = default;
+  
+  
+  [[nodiscard]] virtual double operator()(double x) const = 0;
+  
+  virtual double min() const { return 0.0; }
+  virtual double max() const { return 1.0; }
+  
+  
   virtual void draw(const ofRectangle & viewport)
   {
-    ShapingUtils::drawFunction(viewport, parameters.getName(), [this](double x) { return this->operator()(x); });
+    const auto& name = parameters.getName();
+    ShapingUtils::drawFunction(viewport, name, [this](double x) { return this->operator()(x); });
   }
   
   ofParameterGroup parameters;
   operator ofParameterGroup&() { return parameters; }
   
-protected:
+  template<typename T>
+  T getParameterValue(const std::string & name) const { return parameters.get<T>(name).get(); }
   
+  virtual ofJson toJSON() { return ofJson(); }
+  virtual void fromJSON(const ofJson & json) {}
+  
+  friend std::ostream& operator<<(std::ostream& os, ShapingFunctionAbstract& func) { return os; }
+  friend std::istream& operator>> (std::istream &is, ShapingFunctionAbstract &func) { return is; }
 };
 
 
@@ -103,7 +135,7 @@ public:
     parameters.setName(name);
   };
   
-  virtual double operator()(double x) override { return x; }
+  virtual double operator()(double x) const override { return x; }
 };
 
 class InvertFunction : public ShapingFunctionAbstract {
@@ -112,7 +144,7 @@ public:
     parameters.setName(name);
   };
   
-  virtual double operator()(double x) override { return 1.0 - x; }
+  virtual double operator()(double x) const override { return 1.0 - x; }
 };
 
 class GainFunction : public ShapingFunctionAbstract {
@@ -122,8 +154,8 @@ public:
     parameters.add(k_p);
   };
   
-  virtual double operator()(double x) override { return (*this)(x, k_p.get()); }
-  double operator()(double x, double k)
+  virtual double operator()(double x) const override { return (*this)(x, k_p.get()); }
+  double operator()(double x, double k) const
   {
     const float a = 0.5 * pow(2.0 * ((x < 0.5) ? x : 1.0 - x), k);
     return (x < 0.5) ? a : 1.0 - a;
@@ -141,8 +173,8 @@ public:
     parameters.add(start, end);
   };
   
-  virtual double operator()(double x) override { return (*this)(x, start.get(), end.get()); }
-  virtual double operator()(double x, double start, double end) {
+  virtual double operator()(double x) const override { return (*this)(x, start.get(), end.get()); }
+  virtual double operator()(double x, double start, double end) const {
     return (x >= start && x <= end);
   }
   
@@ -159,8 +191,8 @@ public:
     parameters.add(exponent);
   };
   
-  virtual double operator()(double x) override { return (*this)(x, exponent.get()); }
-  double operator()(double x, double exponent) { return pow(x, exponent); }
+  virtual double operator()(double x) const override { return (*this)(x, exponent.get()); }
+  double operator()(double x, double exponent) const { return pow(x, exponent); }
   
 protected:
   ofParameter<float> exponent { "Exponent", 2.0, 0.0, 8.0 };
@@ -174,8 +206,8 @@ public:
     parameters.add(amplitude, bias);
   };
   
-  virtual double operator()(double x) override { return (*this)(x, amplitude.get(), bias.get()); }
-  virtual double operator()(double x, double a, double b) { return pow(x, a) / (pow(x, a) + pow(b - b * x, a)); }
+  virtual double operator()(double x) const override { return (*this)(x, amplitude.get(), bias.get()); }
+  virtual double operator()(double x, double a, double b) const { return pow(x, a) / (pow(x, a) + pow(b - b * x, a)); }
   
 protected:
   ofParameter<float> amplitude { "Amplitude", 2.0, 0.0, 4.0 };
@@ -190,11 +222,11 @@ public:
     parameters.add(k_p);
   };
   
-  virtual double operator()(double x) override { return (*this)(x, k_p.get()); }
-  double operator()(double x, double k) { return pow(4.0 * x * (1.0 - x), k); }
+  virtual double operator()(double x) const override { return (*this)(x, k_p.get()); }
+  double operator()(double x, double k) const { return pow(4.0 * x * (1.0 - x), std::max(0.001, k)); }
   
 protected:
-  ofParameter<float> k_p { "K", 1.0, 0.0, 6.0 };
+  ofParameter<float> k_p { "Shape", 1.0, 0.0, 6.0 };
   
 };
 
@@ -205,12 +237,12 @@ public:
     parameters.add(slope, shift);
   };
   
-  virtual double operator()(double x) override
+  virtual double operator()(double x) const override
   {
     return (*this)(x, slope.get(), shift.get());
   }
   
-  virtual double operator()(double x, double slope, double shift)
+  virtual double operator()(double x, double slope, double shift) const
   {
     slope = ofClamp(slope, -0.99, 0.99);
     double c = 2.0 / (1.0 - slope) - 1.0;
@@ -233,9 +265,8 @@ public:
     parameters.add(k_p, n_p);
   };
   
-  virtual double operator()(double x) override { return (*this)(x, k_p.get(), n_p.get()); }
-  
-  virtual double operator()(double x, double k, double n) { return exp(-k * pow(x, n)); }
+  virtual double operator()(double x) const override { return (*this)(x, k_p.get(), n_p.get()); }
+  virtual double operator()(double x, double k, double n) const { return exp(-k * pow(x, n)); }
   
 protected:
   ofParameter<float> k_p { "K", 1.0, 0.0, 4.0 };
@@ -250,8 +281,8 @@ public:
     parameters.add(left_edge, right_edge);
   };
   
-  virtual double operator()(double x) override { return (*this)(x, left_edge.get(), right_edge.get()); }
-  virtual double operator()(double x, double left_edge, double right_edge) {
+  virtual double operator()(double x) const override { return (*this)(x, left_edge.get(), right_edge.get()); }
+  virtual double operator()(double x, double left_edge, double right_edge) const {
     x = ofClamp((x - left_edge) / (right_edge - left_edge), 0, 1);
     return x*x*x/(3.0*x*x-3.0*x+1.0);
   }
@@ -269,8 +300,8 @@ public:
     parameters.add(frequency, offset);
   };
   
-  virtual double operator()(double x) override { return (*this)(x, frequency.get(), offset.get()); }
-  virtual double operator()(double x, double f, double o) { return sin(x * TWO_PI * f + offset) * 0.5 + 0.5; }
+  virtual double operator()(double x) const override { return (*this)(x, frequency.get(), offset.get()); }
+  virtual double operator()(double x, double f, double o) const { return sin(x * TWO_PI * f + offset * TWO_PI) * 0.5 + 0.5; }
   
 protected:
   ofParameter<float> frequency  { "Frequency (hz)",  1.0, 0.0, 10.0 };
@@ -278,22 +309,33 @@ protected:
   
 };
 
-class SignedSineFunction : public SineFunction {
+class SignedSineFunction : public ShapingFunctionAbstract {
 public:
-  SignedSineFunction(const std::string & name = "Signed Sine Function") : SineFunction(name) {};
+  SignedSineFunction(const std::string & name = "Signed Sine Function") {
+    parameters.setName(name);
+    parameters.add(frequency, offset);
+  };
   
-  virtual double operator()(double x, double f, double o) { return sin(x * TWO_PI * f + offset); }
+  virtual double min() const override { return -1.0; }
+  
+  virtual double operator()(double x) const override { return (*this)(x, frequency.get(), offset.get()); }
+  virtual double operator()(double x, double f, double o) const { return sin(x * TWO_PI * f + offset); }
+
+protected:
+  ofParameter<float> frequency  { "Frequency (hz)",  1.0, 0.0, 10.0 };
+  ofParameter<float> offset { "Offset", 0.0, 0.0, 1.0 };
 };
 
 class PeriodicSineFunction : public ShapingFunctionAbstract {
 public:
-  PeriodicSineFunction() {
+  PeriodicSineFunction(const std::string & name = "Signed Sine Function", float maxPeriod = 10.0) {
     parameters.setName("Periodic Sine Function");
     parameters.add(period, offset);
+    period.setMax(maxPeriod);
   };
   
-  virtual double operator()(double x) override { return (*this)(x, period.get(), offset.get()); }
-  virtual double operator()(double x, double p, double o) { return sin(x * TWO_PI * (1.0 / p) + offset) * 0.5 + 0.5; }
+  virtual double operator()(double x) const override { return (*this)(x, period.get(), offset.get()); }
+  virtual double operator()(double x, double p, double o) const { return sin(x * TWO_PI * (1.0 / p) + offset) * 0.5 + 0.5; }
   
 protected:
   ofParameter<float> period  { "Period",  1.0, 0.0, 10.0 };
@@ -307,7 +349,7 @@ public:
     parameters.setName(name);
   };
   
-  virtual double operator()(double x) override { return 2.0 * std::min(x, 1.0 - x); }
+  virtual double operator()(double x) const override { return 2.0 * std::min(x, 1.0 - x); }
 };
 
 class Shaping {

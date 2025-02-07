@@ -16,7 +16,7 @@ void Typography::draw(const ofTrueTypeFont & font, const std::string & text, con
   auto BB = font.getStringBoundingBox(text, 0, 0);
   
   float offsetX = -BB.width * horzAlignMultipliers[horizontalAlign];
-  float offsetY = -BB.height * vertAlignMultipliers[verticalAlign] + xBB.height;
+  float offsetY = -xBB.height * vertAlignMultipliers[verticalAlign] + xBB.height;
   
   ofPushMatrix();
   ofTranslate(pos);
@@ -134,18 +134,22 @@ std::vector<ofPolyline> Typography::getStringAsLines(const ofTrueTypeFont & font
 
 void Typography::typeOnPath(const ofTrueTypeFont & font, const std::string & text, const ofPolyline & line, const Typography::TypeOnPathSettings & settings)
 {
-  typeOnPath(font, text, line, settings.fontSize, settings.offset, settings.spacing, settings.repeat, settings.wrap, settings.flipX, settings.flipY);
+  typeOnPath(font, text, line, settings.fontSize, settings.offset, settings.horizontalAlign, settings.spacing, settings.repeat, settings.wrap, settings.flipX, settings.flipY);
 }
 
-void Typography::typeOnPath(const ofTrueTypeFont & font, const std::string & text, const ofPolyline & line, float fontSize, float offset, float spacing, bool repeat, bool wrap, bool flipX, bool flipY)
+void Typography::typeOnPath(const ofTrueTypeFont & font, const std::string & text, const ofPolyline & line, float fontSize, float offset, ofAlignHorz horizontalAlign, float spacing, bool repeat, bool wrap, bool flipX, bool flipY)
 {
+  static map<ofAlignHorz, float> horzAlignMultipliers = { { OF_ALIGN_HORZ_LEFT, 0.0f }, { OF_ALIGN_HORZ_CENTER, 0.5 }, { OF_ALIGN_HORZ_RIGHT, 1.0f }};
+  
   float scale = fontSize / font.getSize();
   auto xBB = font.getStringBoundingBox("X", 0, 0);
   
   int directionX = (flipX) ? -1 : 1;
   int directionY = (flipY) ? -1 : 1;
   
-  offset = ofWrap(offset, 0, line.getPerimeter());
+  float totalWidth = ((xBB.width * scale) * (1.0 + spacing)) * text.size();
+  
+  offset = ofWrap(offset - (totalWidth * horzAlignMultipliers[horizontalAlign]), 0, line.getPerimeter());
   
   int letterIndex = 0;
   for (float lineX = 0; abs(lineX) < line.getPerimeter() - xBB.width * scale;)
@@ -175,7 +179,7 @@ void Typography::typeOnPath(const ofTrueTypeFont & font, const std::string & tex
     font.drawStringAsShapes(letter, -xBB.width * 0.5, xBB.height * 0.5);
     ofPopMatrix();
     
-    lineX += scaledBB.width * (1.0 + spacing) * directionX;
+    lineX += (xBB.width * scale) * (1.0 + spacing) * directionX;
     letterIndex++;
   }
 }

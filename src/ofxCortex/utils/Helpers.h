@@ -8,16 +8,26 @@
 #include "ofMath.h"
 #include "ofVectorMath.h"
 #include "ofBaseTypes.h"
+#include "ofAppGLFWWindow.h"
 
 #include "ofxCortex/utils/ContainerUtils.h"
+
+namespace ofxCortex {
+
+inline static float getScale() {
+  static float scale = ((ofAppGLFWWindow*)ofGetWindowPtr())->getPixelScreenCoordScale();
+  return scale;
+}
+
+}
 
 
 namespace ofxCortex { namespace core { namespace utils {
 
 
-static ofRectangle getImageRectangle(const ofBaseDraws & image) { return ofRectangle(0, 0, image.getWidth(), image.getHeight()); }
+inline static ofRectangle getImageRectangle(const ofBaseDraws & image) { return ofRectangle(0, 0, image.getWidth(), image.getHeight()); }
 
-static ofRectangle getBitmapStringBoundingBox(const std::string & text)
+inline static ofRectangle getBitmapStringBoundingBox(const std::string & text)
 {
   std::vector<std::string> lines = ofSplitString(text, "\n");
   int maxLineLength = 0;
@@ -52,9 +62,26 @@ inline static float getNormalizedTime(float hours = ofGetHours(), float minutes 
   return (hoursToSeconds + minutesToSeconds + seconds) / 86400.0;
 }
 
+inline static std::tuple<int, int, int> fromNormalizedTime(float t)
+{
+  t = ofWrap(t, 0, 1);
+  
+  float totalSeconds = t * 86400.0;
+  
+  int hours = floor(totalSeconds / 3600.0);
+  totalSeconds -= hours * 3600;
+  
+  int minutes = floor(totalSeconds / 60.0);
+  totalSeconds -= minutes * 60.0;
+  
+  int seconds = totalSeconds;
+  
+  return { hours, minutes, seconds };
+}
+
 
 template<typename T>
-static T interpolate(const std::vector<T> & values, float t)
+inline static T interpolate(const std::vector<T> & values, float t)
 {
   if (values.size() == 1 || ofIsFloatEqual(t, 0.0f)) return values[0];
   if (ofIsFloatEqual(t, 1.0f)) return values[values.size() - 1];
@@ -68,7 +95,7 @@ static T interpolate(const std::vector<T> & values, float t)
 }
 
 template<typename T>
-static T slerp(const T & A, const T & B, float t)
+inline static T slerp(const T & A, const T & B, float t)
 {
      float dot = glm::dot(A, B);
      glm::clamp(dot, -1.0f, 1.0f);
@@ -84,7 +111,7 @@ static T slerp(const T & A, const T & B, float t)
 #pragma mark - String
 namespace String {
 
-static std::string toTitleCase(const std::string& str)
+inline static std::string toTitleCase(const std::string& str)
 {
   std::string result = str;
   bool makeUpper = true; // Flag to indicate the next character should be capitalized
@@ -108,7 +135,7 @@ static std::string toTitleCase(const std::string& str)
 #pragma mark - Color
 namespace Color {
 
-static ofColor hexToColor(const std::string & hex)
+inline static ofColor hexToColor(const std::string & hex)
 {
   unsigned int hexValue;
   std::istringstream iss(hex);
@@ -121,7 +148,7 @@ static ofColor hexToColor(const std::string & hex)
   return ofColor(r, g, b);
 }
 
-static std::string colorToHex(const ofColor& color) {
+inline static std::string colorToHex(const ofColor& color) {
   std::stringstream hexColor;
   hexColor << "#" << std::hex << std::setw(2) << std::setfill('0') << std::uppercase << (int)color.r
            << std::setw(2) << std::setfill('0') << std::uppercase <<  (int)color.g
@@ -130,24 +157,24 @@ static std::string colorToHex(const ofColor& color) {
     return hexColor.str();
 }
 
-static std::vector<ofColor> fromString(const std::string & colors)
+inline static std::vector<ofColor> fromString(const std::string & colors)
 {
   return utils::Array::transform<ofColor>(ofSplitString(colors, "-"), &Color::hexToColor);
 }
 
-static std::vector<ofColor> fromCoolors(const std::string & URL)
+inline static std::vector<ofColor> fromCoolors(const std::string & URL)
 {
   return fromString(ofSplitString(URL, "/", true, true).back());
 }
 
-static ofFloatColor proceduralPalette(float t, glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 d)
+inline static ofFloatColor proceduralPalette(float t, glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 d)
 {
   glm::vec3 color = a + b * cos(TWO_PI * (c * ofWrap(t, 0.0, 1.0) + d));
   return ofFloatColor(color.r, color.g, color.b);
 }
 
-static ofFloatColor rainbowPalette(float t) { return proceduralPalette(t, glm::vec3(0.5), glm::vec3(0.5), glm::vec3(1.0), glm::vec3(0.0, 0.33, 0.67)); }
-static ofFloatColor metallicPalette(float t) { return proceduralPalette(t, glm::vec3(0.5), glm::vec3(0.5), glm::vec3(1.0), glm::vec3(0.0, 0.1, 0.2)); }
+inline static ofFloatColor rainbowPalette(float t) { return proceduralPalette(t, glm::vec3(0.5), glm::vec3(0.5), glm::vec3(1.0), glm::vec3(0.0, 0.33, 0.67)); }
+inline static ofFloatColor metallicPalette(float t) { return proceduralPalette(t, glm::vec3(0.5), glm::vec3(0.5), glm::vec3(1.0), glm::vec3(0.0, 0.1, 0.2)); }
 
 }
 
@@ -174,7 +201,7 @@ unsigned int measure(Func&& func, Args&&... args)
 namespace Files {
 
 template<typename F>
-void traverse(const std::string & path, const F& func)
+inline static void traverse(const std::string & path, const F& func)
 {
   ofDirectory dir(path);
   const auto & files = dir.getFiles();

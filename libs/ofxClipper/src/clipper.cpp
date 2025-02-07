@@ -1171,7 +1171,7 @@ bool ClipperBase::AddPath(const Path &pg, PolyType PolyTyp, bool Closed)
   catch(...)
   {
     delete [] edges;
-    throw; //range test fails
+    ;    throw; //range test fails
   }
   TEdge *eStart = &edges[0];
 

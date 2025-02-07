@@ -83,29 +83,27 @@ public:
     void print();
   };
   
-  PerlinNoise() {
-    this->parameters = getParameters();
-    this->settingsChanged = parameters.parameterChangedE().newListener([this](const ofAbstractParameter & param) {
-      settings = settingsFromParameters(parameters);
-    });
+  PerlinNoise(const std::string & name = "Perlin Noise") {
+    parameters.setName(name);
+    parameters.add(seed, uniformScale, scale, details, roughness, octaves, contrast, contrastBias);
   };
   ~PerlinNoise() { _getPerlinShader().unload(); }
   
-  ofParameterGroup parameters;
   operator ofParameterGroup&() { return parameters; }
+  const ofParameterGroup& getParameters() const { return parameters; }
+  
+  glm::vec3 getScale() const { return glm::vec3(scale); }
+  float getUniformScale() const { return uniformScale.get(); }
   
 protected:
   static ofShader & _getPerlinShader();
-  ofEventListener settingsChanged;
-  Settings settings;
   
 public:
-  double sample(const glm::vec3 & sample) const { return getNoise(sample, this->settings); }
-  double sample(const glm::vec3 & sample, float scale, float contrast = 1.0f, float contrastBias = 0.5f, float details = 0.5f, float roughness = 1.5f, int octaves = 3, int seed = 80052) const { return getNoise(sample, scale, contrast, contrastBias, details, roughness, octaves, seed); }
+  double sample(const glm::vec3 & sample) const { return sampleNoise(sample, glm::vec3(scale.get()) * uniformScale.get(), contrast.get(), contrastBias.get(), details.get(), roughness.get(), octaves.get(), seed.get()); }
+  double sample(const glm::vec3 & sample, const glm::vec3 & scale, float contrast = 1.0f, float contrastBias = 0.5f, float details = 0.5f, float roughness = 1.5f, int octaves = 3, int seed = 80052) const { return sampleNoise(sample, scale, contrast, contrastBias, details, roughness, octaves, seed); }
   
-  static double getNoise(const glm::vec3 & sample, PerlinNoise::Settings settings);
-  static double getNoise(const glm::vec3 & sample, const ofParameterGroup & parameters);
-  static double getNoise(const glm::vec3 & sample, float scale, float contrast = 1.0f, float contrastBias = 0.5f, float details = 0.5f, float roughness = 1.5f, int octaves = 3, int seed = 80052);
+  static double sampleNoise(const glm::vec3 & sample, PerlinNoise::Settings settings);
+  static double sampleNoise(const glm::vec3 & sample, const glm::vec3 & scale, float contrast = 1.0f, float contrastBias = 0.5f, float details = 0.5f, float roughness = 1.5f, int octaves = 3, int seed = 80052);
   
 #pragma mark - Noise - Pixel/Image Methods
   static void begin(const glm::vec2 & resolution, const glm::vec3 & offset, const PerlinNoise::Settings & settings);
@@ -114,15 +112,20 @@ public:
   static void writeToFbo(ofFbo &fbo, const glm::vec3 & offset, const PerlinNoise::Settings & settings);
   static void writeToFbo(ofFbo &fbo, const glm::vec3 & offset, const glm::vec3 & scale, float contrast = 1.0f, float contrastBias = 0.5f, float details = 0.5f, float roughness = 1.5f, int octaves = 3, int seed = 80057);
   
-#pragma mark - Noise - Settings Helper Methods
+#pragma mark - Noise - Parameters
+protected:
+  ofParameterGroup parameters;
   
-  const PerlinNoise::Settings & getSettings() const { return settings; }
+  ofParameter<int> seed { "Seed", 80052, 0, 100000 };
+  ofParameter<float> uniformScale { "Uniform Scale", 1, 0, 1000 };
+  ofParameter<glm::vec3> scale { "Scale", glm::vec3(1), glm::vec3(0), glm::vec3(1000) };
+  ofParameter<float> details { "Details", 0.5f, 0.0f, 1.0f };
+  ofParameter<float> roughness { "Roughness", 1.5f, 1.0f, 2.0f };
+  ofParameter<int> octaves { "Octaves", 3, 1, 8 };
   
-  static void settingsFromParameters(PerlinNoise::Settings & settings, const ofParameterGroup &parameters);
-  static PerlinNoise::Settings settingsFromParameters(const ofParameterGroup &parameters);
+  ofParameter<float> contrast { "Contrast", 1.0f, 0.0f, 2.0f };
+  ofParameter<float> contrastBias { "Contrast Bias", 0.5f, 0.0f, 1.0f };
   
-  static ofParameterGroup addParameters(ofParameterGroup &parameters);
-  static ofParameterGroup getParameters();
 };
 
 }}}

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "ofImage.h"
-
 namespace ofxCortex { namespace core { namespace types {
 
 class File
@@ -9,6 +7,7 @@ class File
 public:
   std::string path;
   
+public:
   File() {};
   File (const std::string & path ) : path(path) {}
   File(const File &other) : path(other.path) {}

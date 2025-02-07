@@ -73,31 +73,33 @@ class Timer<void> : public ofThread {
 public:
   Timer() {}
   ~Timer() {
-    waitForThread(true, 10000);
+    waitForThread(true);
   }
 
-  static std::shared_ptr<Timer> setTimer(std::function<void()> && callback, uint64_t intervalMs, bool cyclic = false, bool autostart = true)
+  static std::shared_ptr<Timer> setTimer(std::function<void()> && callback, uint64_t intervalMs, bool cyclic = false, bool autostart = true, bool callbackOnStart = true)
   {
     static uint64_t nanosecondToMs = 1000000;
 
     auto instance = std::make_shared<Timer>();
     instance->callback = std::forward<std::function<void()>>(callback);
     instance->cyclic = cyclic;
-
+    
+    if (callbackOnStart) instance->callback();
+    
     instance->timer.setPeriodicEvent(nanosecondToMs * intervalMs);
     if (autostart) instance->restart();
 
     return instance;
   }
 
-  static std::shared_ptr<Timer> setInterval(std::function<void()> && callback, uint64_t intervalMs, bool autostart = true)
+  static std::shared_ptr<Timer> setInterval(std::function<void()> && callback, uint64_t intervalMs, bool autostart = true, bool callbackOnStart = true)
   {
-    return Timer::setTimer(std::forward<std::function<void()>>(callback), intervalMs, true, autostart);
+    return Timer::setTimer(std::forward<std::function<void()>>(callback), intervalMs, true, autostart, callbackOnStart);
   }
 
-  static std::shared_ptr<Timer> setTimeout(std::function<void()> && callback, uint64_t intervalMs, bool autostart = true)
+  static std::shared_ptr<Timer> setTimeout(std::function<void()> && callback, uint64_t intervalMs, bool autostart = true, bool callbackOnStart = true)
   {
-    return Timer::setTimer(std::forward<std::function<void()>>(callback), intervalMs, false, autostart);
+    return Timer::setTimer(std::forward<std::function<void()>>(callback), intervalMs, false, autostart, callbackOnStart);
   }
 
   void restart() {

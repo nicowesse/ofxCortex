@@ -101,6 +101,21 @@ public:
   
   virtual std::string type() const override { return typeid(*this).name(); }
   
+  template <typename T>
+  T getMetadata(const std::string &key, T defaultValue = T()) const
+  {
+    auto it = metadata.find(key);
+    if (it == metadata.end())
+      return defaultValue;
+    
+    return std::any_cast<T>(it->second);
+  };
+  
+  template <typename T>
+  void setMetadata(const std::string &key, T value) { metadata.at(key) = value; };
+  
+  bool hasMetadata(const std::string &key) { return metadata.find(key) != metadata.end(); };
+  
   ParameterType getMin() const { return parameter.getMin(); };
   ParameterType getMax() const { return parameter.getMax(); };
   ParameterType getInit() const { return parameter.getInit(); };
@@ -193,7 +208,6 @@ public:
 protected:
   ofParameter<ParameterType> parameter;
   std::unordered_map<std::string, std::any> metadata;
-  
 };
 
 

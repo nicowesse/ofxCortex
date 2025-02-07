@@ -1,55 +1,44 @@
 #pragma once
 
 #include "ofxCortex/utils/NumberUtils.h"
+#include "ofxCortex/utils/AudioUtils.h"
+#include "ofxCortex/types/Select.h"
 
 namespace ofxCortex { namespace core { namespace types {
 
-struct BeatDivision {
-  using value_type = int; // Define value_type as int
+struct BeatDivision : public Select<int> {
   
-  BeatDivision(int value = 2) : value(value) {};
-  BeatDivision(const BeatDivision &other) : value(other.value) {}
+  BeatDivision(int selected = 2) : Select<int>(std::vector<std::pair<int, std::string>>{
+    { 0, "1/1" },
+    { 1, "1/2" },
+    { 2, "1/4" },
+    { 3, "1/8" },
+    { 4, "1/16" },
+    { 5, "1/32" }
+  }, selected) {};
   
   BeatDivision& operator=(const BeatDivision &other)
   {
-    if (this != &other) this->value = other.value;
+    if (this != &other) this->selectedIndex = other.selectedIndex;
     return *this;
   }
   
-  BeatDivision& operator=(int val) {
-    value = val % 5;
-    return *this;
-  }
+  BeatDivision& operator=(int val) { selectedIndex = val % 5; return *this; }
+  operator int() const { return selectedIndex; }
   
-  operator int() const { return value; }
-  
-  BeatDivision& operator+=(const BeatDivision& other) {
-    value = clamp(value + other.value);
-    return *this;
-  }
-  
-  BeatDivision& operator-=(const BeatDivision& other) {
-    value = clamp(value - other.value);
-    return *this;
-  }
-  
-  BeatDivision& operator*=(const BeatDivision& other) {
-    value = clamp(value * other.value);
-    return *this;
-  }
+  BeatDivision& operator+=(const BeatDivision& other) { selectedIndex = clamp(selectedIndex + other.selectedIndex); return *this; }
+  BeatDivision& operator-=(const BeatDivision& other) { selectedIndex = clamp(selectedIndex - other.selectedIndex); return *this; }
+  BeatDivision& operator*=(const BeatDivision& other) { selectedIndex = clamp(selectedIndex * other.selectedIndex); return *this; }
   
   BeatDivision& operator/=(const BeatDivision& other) {
-    if (other.value != 0) {
-      value = clamp(value / other.value);
+    if (other.selectedIndex != 0) {
+      selectedIndex = clamp(selectedIndex / other.selectedIndex);
     }
     return *this;
   }
   
   // Increment and decrement operators
-  BeatDivision& operator++() {
-    value = clamp(value + 1);
-    return *this;
-  }
+  BeatDivision& operator++() { selectedIndex = (selectedIndex + 1) % 5; return *this; }
   
   BeatDivision operator++(int) {
     BeatDivision temp(*this);
@@ -57,10 +46,7 @@ struct BeatDivision {
     return temp;
   }
   
-  BeatDivision& operator--() {
-    value = clamp(value - 1);
-    return *this;
-  }
+  BeatDivision& operator--() { selectedIndex = clamp(selectedIndex - 1); return *this; }
   
   BeatDivision operator--(int) {
     BeatDivision temp(*this);
@@ -68,39 +54,10 @@ struct BeatDivision {
     return temp;
   }
   
-  friend std::ostream& operator<<(std::ostream& os, const BeatDivision& division)
-  {
-    int wrapped = utils::modulo(division, 6);
-    if (wrapped == 0) os << "1/1"; // Bar
-    else if (wrapped == 1) os << "1/2"; // Half
-    else if (wrapped == 2) os << "1/4"; // Quarter/Beat
-    else if (wrapped == 3) os << "1/8"; // Eight
-    else if (wrapped == 4) os << "1/16"; // Sixteenth
-    else if (wrapped == 5) os << "1/32"; // Sixteenth
-    
-    return os;
-  }
-  
-  friend std::istream& operator>> (std::istream &is, BeatDivision& division)
-  {
-    std::string incoming(std::istreambuf_iterator<char>(is), {});
-    
-    if (incoming == "1/1") division = 0;
-    else if (incoming == "1/2") division = 1;
-    else if (incoming == "1/4") division = 2;
-    else if (incoming == "1/8") division = 3;
-    else if (incoming == "1/16") division = 4;
-    else if (incoming == "1/32") division = 5;
-    
-    return is;
-  }
-  
-  friend bool operator==(const BeatDivision& beat, int val) { return beat.value == val; }
-  friend bool operator==(int val, const BeatDivision& beat) { return val == beat.value; }
+  friend bool operator==(const BeatDivision& beat, int val) { return beat.selectedIndex == val; }
+  friend bool operator==(int val, const BeatDivision& beat) { return val == beat.selectedIndex; }
   
 protected:
-  int value;
-  
   static int clamp(int val) { return std::max(0, std::min(5, val)); }
 };
 
@@ -117,4 +74,5 @@ public:
 };
 
 template<> struct is_arithmetic<ofxCortex::core::types::BeatDivision> : std::true_type {};
+
 }

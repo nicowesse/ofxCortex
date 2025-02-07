@@ -192,6 +192,20 @@ public:
     return is;
   }
   
+  ofJson toJSON() const {
+    ofJson output;
+    for (int i = 0; i < colors.size(); i++)
+    {
+      output[i] = ofxCortex::core::utils::Color::colorToHex(colors[i]);
+    }
+    return output;
+  }
+  
+  void fromJSON(const ofJson & json)
+  {
+    
+  }
+  
   ofEvent<void> onPaletteChanged;
   
 protected:

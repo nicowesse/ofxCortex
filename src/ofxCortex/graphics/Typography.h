@@ -124,9 +124,10 @@ public:
     bool wrap { false };
     bool flipX { false };
     bool flipY { false };
+    ofAlignHorz horizontalAlign { OF_ALIGN_HORZ_LEFT };
   };
   
-  static void typeOnPath(const ofTrueTypeFont & font, const std::string & text, const ofPolyline & line, float fontSize, float offset = 0.0f, float spacing = 1.0f, bool repeat = false, bool wrap = true, bool flipX = false, bool flipY = false);
+  static void typeOnPath(const ofTrueTypeFont & font, const std::string & text, const ofPolyline & line, float fontSize, float offset = 0.0f, ofAlignHorz horizontalAlign = OF_ALIGN_HORZ_LEFT, float spacing = 1.0f, bool repeat = false, bool wrap = true, bool flipX = false, bool flipY = false);
   static void typeOnPath(const ofTrueTypeFont & font, const std::string & text, const ofPolyline & line, const TypeOnPathSettings & settings);
 protected:
 };

@@ -3,7 +3,7 @@
 
 namespace ofxCortex { namespace core { namespace utils {
 
-bool rayTriangleIntersection(const ofMeshFace & face, const glm::vec3 & O, const glm::vec3 & D, glm::vec3 & R)
+inline static bool rayTriangleIntersection(const ofMeshFace & face, const glm::vec3 & O, const glm::vec3 & D, glm::vec3 & R)
 {
   static const float EPSILON = 0.00000001;
   
@@ -60,7 +60,7 @@ bool rayTriangleIntersection(const ofMeshFace & face, const glm::vec3 & O, const
   return false;
 }
 
-bool isInsideMesh(const glm::vec3 & p, const ofMesh & mesh)
+inline static bool isInsideMesh(const glm::vec3 & p, const ofMesh & mesh)
 {
   static bool warning_given;
   if (mesh.getMode() != OF_PRIMITIVE_TRIANGLES)
@@ -88,7 +88,7 @@ bool isInsideMesh(const glm::vec3 & p, const ofMesh & mesh)
   return unique_intersections.size() % 2 == 1;
 }
 
-ofxCortex::core::types::Box getMeshBoundingBox(const ofMesh & mesh)
+inline static ofxCortex::core::types::Box getMeshBoundingBox(const ofMesh & mesh)
 {
   glm::vec3 min, max;
   const std::vector<glm::vec3> vertices = mesh.getVertices();

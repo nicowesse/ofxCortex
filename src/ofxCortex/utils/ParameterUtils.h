@@ -156,6 +156,19 @@ public:
     return ofJoinString(std::vector<std::string>(hierarchy.begin() + skipRoot, hierarchy.end()), "::");
   }
   
+  static std::string getHashedParameterName(const ofAbstractParameter & param)
+  {
+    static std::hash<std::string> hasher;
+    return std::to_string(hasher(serializeName(param, false)));
+  }
+  
+  static std::string hash(const ofAbstractParameter & param) { return getHashedParameterName(param); }
+  
+  static int getLevel(ofAbstractParameter & param)
+  {
+    return param.getGroupHierarchyNames().size() - 1;
+  }
+  
   static std::string unescape(const std::string & _str)
   {
     std::string str(_str);
