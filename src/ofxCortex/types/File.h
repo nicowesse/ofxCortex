@@ -8,7 +8,7 @@ public:
   std::string path;
   
 public:
-  File() {};
+  File() : path("") {};
   File (const std::string & path ) : path(path) {}
   File(const File &other) : path(other.path) {}
   
@@ -17,6 +17,14 @@ public:
     if (this != &other) { this->path = other.path; }
     return *this;
   }
+  
+  File& operator= (const std::string &path)
+  {
+    this->path = path;
+    return *this;
+  }
+  
+  operator const std::string&() const { return this->path; }
   
   friend std::ostream& operator<<(std::ostream& os, const File& file)
   {

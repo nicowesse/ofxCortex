@@ -20,6 +20,6 @@ struct Separator {
 #include "BeatDivision.h"
 #include "Parameter.h"
 #include "Status.h"
-#include "OutputValue.h"
+#include "DisplayValue.h"
 #include "Plot.h"
 

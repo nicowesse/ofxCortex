@@ -226,7 +226,7 @@ public:
   double operator()(double x, double k) const { return pow(4.0 * x * (1.0 - x), std::max(0.001, k)); }
   
 protected:
-  ofParameter<float> k_p { "Shape", 1.0, 0.0, 6.0 };
+  ofParameter<float> k_p { "Shape", 1.0, 0.0001, 6.0 };
   
 };
 
@@ -366,6 +366,7 @@ public:
   inline static SmoothstepFunction smoothstep;
   inline static SineFunction sine;
   inline static SignedSineFunction signedSine;
+  inline static PeriodicSineFunction periodicSine;
   
   static float signedToUnsigned(float x) { return (x + 1.0) / 2.0; }
   static float unsignedToSigned(float x) { return (x * 2.0) - 1.0; }

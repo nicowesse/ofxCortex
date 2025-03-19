@@ -45,6 +45,27 @@ inline static void drawCap(const glm::vec2 & P, const glm::vec2 & D, Cap cap, fl
   ofPopMatrix();
 }
 
+inline static void drawCap(const glm::vec3 & P, const glm::vec3 & D, Cap cap, float size = 8.0)
+{
+  if (cap == Cap::NONE) return;
+  
+  ofPushMatrix();
+  {
+    ofPushStyle();
+    {
+      ofFill();
+      if (cap == Cap::ARROW)
+      {
+        ofDrawArrow(P, P + D, size * 0.25);
+      }
+      else if (cap == Cap::LINE) ofDrawLine(P.x - size * 0.75, P.y + 0, P.z + size * 0.75, 0);
+      else if (cap == Cap::DOT) ofDrawSphere(P, 3);
+    }
+    ofPopStyle();
+  }
+  ofPopMatrix();
+}
+
 inline static void drawLine(const ofPolyline & source, float dash = 0.0, float gap = 4.0, Cap startCap = Cap::NONE, Cap endCap = Cap::NONE)
 {
   if (source.size() < 2) return;
@@ -61,23 +82,23 @@ inline static void drawLine(const ofPolyline & source, float dash = 0.0, float g
     
     for (int step = 0; step <= steps; step++)
     {
-      glm::vec2 from = source.getPointAtPercent(step * pixelStep * dashGapTotal);
-      glm::vec2 to = source.getPointAtPercent(step * pixelStep * dashGapTotal + pixelStep * dash);
+      auto from = source.getPointAtPercent(step * pixelStep * dashGapTotal);
+      auto to = source.getPointAtPercent(step * pixelStep * dashGapTotal + pixelStep * dash);
         
-      if (!viewport.inside(from) || !viewport.inside(to)) continue;
+      //if (!viewport.inside(from) || !viewport.inside(to)) continue;
       
       ofDrawLine(from, to);
     }
   }
   else source.draw();
   
-  const glm::vec2 & start = source[0];
-  glm::vec2 startDir = glm::normalize(start - source[1]);
+  const auto & start = source[0];
+  auto startDir = glm::normalize(start - source[1]);
   
   drawCap(start, startDir, startCap);
   
-  const glm::vec2 & end = source[source.size() - 1];
-  glm::vec2 endDir = glm::normalize(end - source[source.size() - 2]);
+  const auto & end = source[source.size() - 1];
+  auto endDir = glm::normalize(end - source[source.size() - 2]);
   
   drawCap(end, endDir, endCap);
 }
@@ -85,6 +106,12 @@ inline static void drawLine(const ofPolyline & source, float dash = 0.0, float g
 inline static void drawLine(const glm::vec2 & a, const glm::vec2 & b, float dash = 0.0, float gap = 4, Cap startCap = Cap::NONE, Cap endCap = Cap::NONE)
 {
   ofPolyline line; line.addVertex(a.x, a.y); line.addVertex(b.x, b.y);
+  drawLine(line, dash, gap, startCap, endCap);
+}
+
+inline static void drawLine(const glm::vec3 & a, const glm::vec3 & b, float dash = 0.0, float gap = 4, Cap startCap = Cap::NONE, Cap endCap = Cap::NONE)
+{
+  ofPolyline line; line.addVertex(a); line.addVertex(b);
   drawLine(line, dash, gap, startCap, endCap);
 }
 
@@ -107,9 +134,22 @@ inline static void drawLabeledLine(const glm::vec2 & a, const glm::vec2 & b, con
   ofDrawBitmapString(label, mid.x + label.length() * 8 * -0.5 - 1, mid.y + 4);
 }
 
+inline static void drawLabeledLine(const glm::vec3 & a, const glm::vec3 & b, const std::string & label, bool dashed = false, Cap startCap = Cap::NONE, Cap endCap = Cap::NONE)
+{
+  glm::vec3 mid = glm::mix(a, b, 0.5);
+  
+  drawLine(a, b, 4 * dashed, 4, startCap, endCap);
+  ofDrawBitmapString(label, mid.x + label.length() * 8 * -0.5 - 1, mid.y + 4, mid.z);
+}
+
 inline static void drawLabeledArrow(const glm::vec2 & a, const glm::vec2 & b, const std::string & label, bool dashed = false)
 {
   drawLabeledLine(a, b, label, dashed, Cap::NONE, Cap::ARROW);
+}
+
+inline static void drawDimension(const glm::vec3 & a, const glm::vec3 & b, const std::string & label, bool dashed = true)
+{
+  drawLabeledLine(a, b, label, dashed, Cap::ARROW, Cap::ARROW);
 }
 
 inline static void drawCircle(const glm::vec2 & P, float r, float dash = 0.0)
@@ -196,6 +236,37 @@ inline static void drawAxis(const glm::vec3 & position = glm::vec3(0), float sca
   ofPushMatrix();
   {
     ofTranslate(position);
+    ofScale(scale);
+    
+    ofPushStyle();
+    {
+      ofFill();
+      
+      ofSetColor(ofColor::tomato);
+      ofDrawArrow(glm::vec3(0, 0, 0), glm::vec3(1, 0, 0), 0.05);
+      ofDrawBitmapString("+X", 1.1, -0.025, -0.025);
+      
+      ofSetColor(ofColor::springGreen);
+      ofDrawArrow(glm::vec3(0, 0, 0), glm::vec3(0, 1, 0), 0.05);
+      ofDrawBitmapString("+Y", 0, 1.1, 0);
+      
+      ofSetColor(ofColor::dodgerBlue);
+      ofDrawArrow(glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), 0.05);
+      ofDrawBitmapString("+Z", -0.025, -0.025, 1.1);
+      
+      ofSetColor(ofColor::black);
+      ofDrawSphere(0.05);
+    }
+    ofPopStyle();
+  }
+  ofPopMatrix();
+}
+
+inline static void drawNode(const ofNode & node, float scale = 10.0f)
+{
+  ofPushMatrix();
+  {
+    ofMultMatrix(node.getGlobalTransformMatrix());
     ofScale(scale);
     
     ofPushStyle();
